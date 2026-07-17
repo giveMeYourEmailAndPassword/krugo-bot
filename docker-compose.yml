@@ -1,7 +1,7 @@
 services:
-  # Hermes Agent — первый запуск:
+  # Hermes Agent — первый запуск (обе команды на одном volume):
+  #   docker compose run --rm hermes setup
   #   docker compose run --rm hermes gateway setup
-  # После настройки gateway стартует автоматически через command.
   hermes:
     image: nousresearch/hermes-agent:latest
     command: ["gateway"]

@@ -5,9 +5,9 @@
 | Сервис | Статус |
 |---|---|
 | `krugo-bot` | Готов |
-| `hermes` | Требует `gateway setup` |
+| `hermes` | Требует setup |
 
-Интеграция между ними не реализована. Разные Telegram-токены — конфликта нет.
+Разные Telegram-токены — конфликта нет.
 
 ## krugo-bot
 
@@ -17,29 +17,35 @@ Volume: `bot-data` → `/app/data` (SQLite).
 
 ## Hermes Agent
 
-**Первый запуск** — настроить Telegram-шлюз (токен вводится в wizard):
+**Первый запуск** — настроить provider и Telegram (токен вводится в wizard):
 
 ```bash
+docker compose run --rm hermes setup
 docker compose run --rm hermes gateway setup
 ```
 
-**Рабочий запуск** — `docker compose up -d` (оба сервиса).
+**Рабочий запуск:**
+
+```bash
+docker compose up -d
+```
 
 **Безопасность:** задать `TELEGRAM_ALLOWED_USERS` (Telegram ID через запятую).
 
 Требует **отдельный Telegram-токен**, не тот же что у krugo-bot.
 
-## Переменные окружения (Dokploy → Environment)
+## Переменные (Dokploy → Environment)
 
 | Переменная | Назначение |
 |---|---|
 | `TELEGRAM_BOT_TOKEN` | Токен krugo-bot |
 | `OPENAI_API_KEY` | Ключ DeepSeek |
-| `TELEGRAM_ALLOWED_USERS` | Кому разрешён доступ к Hermes |
+| `TELEGRAM_ALLOWED_USERS` | Доступ к Hermes |
 
-## Деплой
+## Порядок
 
 1. Dokploy → Projects → New → GitHub-репо
 2. Environment → задать переменные
 3. Deploy
-4. После деплоя: `docker compose run --rm hermes gateway setup`
+4. `docker compose run --rm hermes setup`
+5. `docker compose run --rm hermes gateway setup`
