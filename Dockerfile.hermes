@@ -1,0 +1,11 @@
+FROM golang:1.26-alpine AS builder
+RUN apk add --no-cache build-base
+WORKDIR /app
+COPY cmd/hermes-proxy/main.go ./
+COPY go.mod go.sum ./
+RUN go mod download
+RUN CGO_ENABLED=0 GOOS=linux go build -o /hermes-proxy .
+
+FROM nousresearch/hermes-agent:latest
+COPY --from=builder /hermes-proxy /opt/hermes/bin/hermes-proxy
+RUN chmod +x /opt/hermes/bin/hermes-proxy
