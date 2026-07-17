@@ -24,8 +24,8 @@ services:
       - BOT_ENV=${BOT_ENV:-production}
     volumes:
       - bot-data:/app/data
+    network_mode: host
     restart: unless-stopped
-
 volumes:
   hermes-data:
   bot-data:
