@@ -223,6 +223,8 @@ func statusLabel(s string) string {
 		tasks.StatusAssigned:           "назначен",
 		tasks.StatusDone:               "закрыто",
 		tasks.StatusRejected:           "отклонено",
+		tasks.StatusHermesResponded:    "ответ Hermes",
+		tasks.StatusHermesFailed:       "ошибка Hermes",
 	}
 	if l, ok := labels[s]; ok {
 		return l
