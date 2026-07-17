@@ -1,16 +1,16 @@
 services:
-  # Hermes Agent — запускается, но gateway требует ручной настройки:
-  #   docker compose exec hermes hermes gateway setup
-  #   docker compose exec hermes hermes gateway start
+  # Hermes Agent — первый запуск:
+  #   docker compose run --rm hermes gateway setup
+  # После настройки gateway стартует автоматически через command.
   hermes:
     image: nousresearch/hermes-agent:latest
+    command: ["gateway"]
     environment:
       - HERMES_HOME=/opt/data
+      - TELEGRAM_ALLOWED_USERS=${TELEGRAM_ALLOWED_USERS:-}
     volumes:
       - hermes-data:/opt/data
     restart: unless-stopped
-    profiles:
-      - hermes
 
   # krugo-bot — standalone Go-бот, DeepSeek напрямую
   krugo-bot:
