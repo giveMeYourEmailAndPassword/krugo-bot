@@ -1,0 +1,12 @@
+services:
+  hermes:
+    image: nousresearch/hermes-agent:latest
+    environment:
+      - HERMES_HOME=/opt/data
+      - TELEGRAM_ALLOWED_USERS=${TELEGRAM_ALLOWED_USERS:-}
+    volumes:
+      - hermes-data:/opt/data
+    restart: unless-stopped
+
+volumes:
+  hermes-data:
