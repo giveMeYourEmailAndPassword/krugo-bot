@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"html"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -14,13 +15,6 @@ import (
 	"github.com/amantur/krugo-bot/internal/tasks"
 )
 
-// Bot orchestrates the Telegram side of Hermes.
-type Bot struct {
-	tele     *telebot.Bot
-	store    Store
-	analyzer *hermes.Analyzer
-}
-
 // Store is the subset of storage operations needed by telegram handlers.
 type Store interface {
 	Create(r *tasks.Request) error
@@ -28,13 +22,20 @@ type Store interface {
 	UpdateStatus(id, status string) error
 	UpdateAnalysis(id string, r *tasks.Request) error
 }
+// Bot orchestrates the Telegram side of Hermes.
+type Bot struct {
+	tele     *telebot.Bot
+	store    Store
+	analyzer *hermes.Analyzer
+	log      *slog.Logger
+}
 
-// NewBot wires the Telegram bot with storage and AI analyzer.
-func NewBot(tele *telebot.Bot, store Store, analyzer *hermes.Analyzer) *Bot {
-	b := &Bot{tele: tele, store: store, analyzer: analyzer}
+func NewBot(tele *telebot.Bot, store Store, analyzer *hermes.Analyzer, log *slog.Logger) *Bot {
+	b := &Bot{tele: tele, store: store, analyzer: analyzer, log: log}
 	b.registerHandlers()
 	return b
 }
+
 
 func (b *Bot) registerHandlers() {
 	b.tele.Handle(telebot.OnText, b.handleText)
@@ -44,12 +45,18 @@ func (b *Bot) registerHandlers() {
 // handleText processes incoming group text messages.
 func (b *Bot) handleText(c telebot.Context) error {
 	text := c.Text()
-	chat := c.Chat()
-	sender := c.Sender()
+
+	// /status HERMES-XXXX — check request status
+	if strings.HasPrefix(strings.ToLower(text), "/status") {
+		return b.handleStatus(c, text)
+	}
 
 	if !rules.LooksLikeRequest(text) {
 		return nil
 	}
+
+	chat := c.Chat()
+	sender := c.Sender()
 
 	req := &tasks.Request{
 		ID:                generateID(),
@@ -88,6 +95,7 @@ func (b *Bot) analyzeRequest(req *tasks.Request) {
 
 	result, err := b.analyzer.Analyze(ctx, req.RawText)
 	if err != nil {
+		b.log.Error("AI analysis failed", "request_id", req.ID, "error", err)
 		req.Status = tasks.StatusReadyForReview
 		req.Recommendation = "⚠️ ИИ не смог обработать заявку. Проверьте вручную."
 		_ = b.store.UpdateAnalysis(req.ID, req)
@@ -243,6 +251,23 @@ func statusLabel(s string) string {
 		return l
 	}
 	return s
+}
+
+// handleStatus responds to /status HERMES-XXXX.
+func (b *Bot) handleStatus(c telebot.Context, text string) error {
+	parts := strings.Fields(text)
+	if len(parts) < 2 {
+		return c.Reply("Укажите ID заявки: /status HERMES-XXXX")
+	}
+
+	reqID := strings.ToUpper(parts[1])
+	req, err := b.store.GetByID(reqID)
+	if err != nil {
+		return c.Reply("Заявка " + reqID + " не найдена.")
+	}
+
+	msg := formatStatus(req)
+	return c.Reply(msg, &telebot.SendOptions{ParseMode: telebot.ModeHTML})
 }
 
 func generateID() string {

@@ -25,6 +25,8 @@ func main() {
 
 	log := logger.New(cfg.BotEnv)
 
+
+
 	// Ensure database directory exists.
 	if err := os.MkdirAll(cfg.DatabaseDir(), 0o755); err != nil {
 		log.Error("create data dir", "error", err)
@@ -58,7 +60,7 @@ func main() {
 	ai := hermes.NewAnalyzer(cfg.OpenAIKey, cfg.OpenAIBaseURL, cfg.AIModel, log)
 
 	// Wire everything.
-	tgBot := telegram.NewBot(bot, store, ai)
+	tgBot := telegram.NewBot(bot, store, ai, log)
 	_ = tgBot // tgBot registers handlers in NewBot; bot starts via Start()
 
 	log.Info("bot starting", "env", cfg.BotEnv)

@@ -9,7 +9,7 @@ Krugo Bot — Telegram-бот на Go для автоматической обр
 - **Язык:** Go 1.26
 - **Telegram:** `gopkg.in/telebot.v3`
 - **БД:** SQLite (`mattn/go-sqlite3`, WAL mode)
-- **AI:** OpenAI-совместимое API (модель по умолчанию `gpt-4o-mini`)
+- **AI:** DeepSeek API, модель `deepseek-v4-flash` (OpenAI-совместимый)
 - **Деплой:** Docker → Railway
 
 ## Структура

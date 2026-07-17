@@ -17,13 +17,13 @@ type Config struct {
 	BotEnv        string
 }
 
-// Load reads configuration from environment variables with sensible defaults.
+// Load reads configuration from environment variables.
 func Load() (*Config, error) {
 	cfg := &Config{
 		TelegramToken: os.Getenv("TELEGRAM_BOT_TOKEN"),
 		OpenAIKey:     os.Getenv("OPENAI_API_KEY"),
-		OpenAIBaseURL: os.Getenv("OPENAI_BASE_URL"),
-		AIModel:       envOrDefault("AI_MODEL", "gpt-4o-mini"),
+		OpenAIBaseURL: envOrDefault("OPENAI_BASE_URL", "https://api.deepseek.com"),
+		AIModel:       envOrDefault("AI_MODEL", "deepseek-v4-flash"),
 		DatabasePath:  envOrDefault("DATABASE_PATH", "/app/data/hermes.db"),
 		BotEnv:        envOrDefault("BOT_ENV", "development"),
 	}
@@ -31,10 +31,10 @@ func Load() (*Config, error) {
 	if cfg.TelegramToken == "" {
 		return nil, fmt.Errorf("TELEGRAM_BOT_TOKEN is required")
 	}
-
-	if cfg.OpenAIBaseURL == "" {
-		cfg.OpenAIBaseURL = "https://api.openai.com/v1"
+	if cfg.OpenAIKey == "" {
+		return nil, fmt.Errorf("OPENAI_API_KEY is required")
 	}
+
 	cfg.OpenAIBaseURL = strings.TrimRight(cfg.OpenAIBaseURL, "/")
 
 	return cfg, nil

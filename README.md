@@ -44,9 +44,9 @@ go run ./cmd/bot
 | Переменная | Обязательна | По умолчанию | Описание |
 |---|---|---|---|
 | `TELEGRAM_BOT_TOKEN` | да | — | Токен бота от @BotFather |
-| `OPENAI_API_KEY` | нет | — | Ключ OpenAI / совместимого API |
-| `OPENAI_BASE_URL` | нет | `https://api.openai.com/v1` | Базовый URL AI-провайдера |
-| `AI_MODEL` | нет | `gpt-4o-mini` | Модель для анализа заявок |
+| `OPENAI_API_KEY` | да | — | Ключ DeepSeek API |
+| `OPENAI_BASE_URL` | нет | `https://api.deepseek.com` | Базовый URL AI-провайдера |
+| `AI_MODEL` | нет | `deepseek-v4-flash` | Модель для анализа заявок |
 | `DATABASE_PATH` | нет | `./data/hermes.db` (локально) | Путь к файлу SQLite |
 | `BOT_ENV` | нет | `development` | `development` / `production` |
 

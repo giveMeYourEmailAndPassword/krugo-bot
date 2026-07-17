@@ -38,9 +38,19 @@ type chatMessage struct {
 }
 
 type chatRequest struct {
-	Model       string        `json:"model"`
-	Messages    []chatMessage `json:"messages"`
-	Temperature float64       `json:"temperature"`
+	Model          string         `json:"model"`
+	Messages       []chatMessage  `json:"messages"`
+	Temperature    float64        `json:"temperature"`
+	Thinking       *thinkingOpt   `json:"thinking,omitempty"`
+	ResponseFormat *responseFmt   `json:"response_format,omitempty"`
+}
+
+type responseFmt struct {
+	Type string `json:"type"`
+}
+
+type thinkingOpt struct {
+	Type string `json:"type"`
 }
 
 type chatResponse struct {
@@ -57,7 +67,9 @@ func (a *Analyzer) Analyze(ctx context.Context, rawText string) (*AnalysisRespon
 			{Role: "system", Content: SystemPrompt()},
 			{Role: "user", Content: rawText},
 		},
-		Temperature: 0.2,
+		Temperature:    0.2,
+		Thinking:       &thinkingOpt{Type: "disabled"},
+		ResponseFormat: &responseFmt{Type: "json_object"},
 	}
 
 	bodyBytes, err := json.Marshal(reqBody)
