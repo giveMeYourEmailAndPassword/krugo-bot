@@ -1,6 +1,7 @@
 services:
   hermes:
     image: nousresearch/hermes-agent:latest
+    command: ["sleep", "infinity"]
     environment:
       - HERMES_HOME=/opt/data
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
