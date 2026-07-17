@@ -1,0 +1,27 @@
+services:
+  krugo-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.deepseek.com}
+      - AI_MODEL=${AI_MODEL:-deepseek-v4-flash}
+      - DATABASE_PATH=/app/data/hermes.db
+      - BOT_ENV=${BOT_ENV:-production}
+    volumes:
+      - bot-data:/app/data
+    restart: unless-stopped
+
+  # Hermes Agent — будет добавлен когда появится образ/API
+  # hermes-agent:
+  #   image: hermes-agent:latest
+  #   environment:
+  #     - HERMES_API_KEY=${HERMES_API_KEY}
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #   restart: unless-stopped
+
+volumes:
+  bot-data:
