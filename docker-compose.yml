@@ -1,10 +1,10 @@
 services:
-  # Hermes Agent — первый запуск (обе команды на одном volume):
-  #   docker compose run --rm hermes setup
-  #   docker compose run --rm hermes gateway setup
+  # Hermes Agent — s6-overlay управляет сервисами.
+  # Первый запуск: docker compose run --rm hermes setup
+  # Gateway: docker compose run --rm hermes gateway setup
+  # Профиль gateway сохраняется в /opt/data, поднимается при рестарте.
   hermes:
     image: nousresearch/hermes-agent:latest
-    command: ["gateway"]
     environment:
       - HERMES_HOME=/opt/data
       - TELEGRAM_ALLOWED_USERS=${TELEGRAM_ALLOWED_USERS:-}
