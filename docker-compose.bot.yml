@@ -1,0 +1,17 @@
+services:
+  krugo-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DATABASE_PATH=/app/data/hermes.db
+      - BOT_ENV=${BOT_ENV:-production}
+    volumes:
+      - bot-data:/app/data
+    network_mode: host
+    restart: unless-stopped
+
+volumes:
+  bot-data:
