@@ -1,38 +1,46 @@
 # Деплой на Dokploy
 
-## 1. krugo-bot (Telegram-бот)
+## Сервисы (независимые)
 
-Dokploy сам подхватит `docker-compose.yml` из репозитория.
+| Сервис | Профиль | Статус |
+|---|---|---|
+| `krugo-bot` | default | Готов — Go-бот + DeepSeek, детектор заявок |
+| `hermes` | `hermes` | Готов — требует ручной настройки gateway |
 
-### Переменные окружения (в Dokploy → проект → Environment):
+Интеграция между ними ещё не реализована.
 
-| Переменная | Значение |
-|---|---|
-| `TELEGRAM_BOT_TOKEN` | токен от @BotFather |
-| `OPENAI_API_KEY` | ключ DeepSeek API |
-| `OPENAI_BASE_URL` | `https://api.deepseek.com` |
-| `AI_MODEL` | `deepseek-v4-flash` |
-| `BOT_ENV` | `production` |
-| `DATABASE_PATH` | `/app/data/hermes.db` (авто) |
+## krugo-bot (default)
 
-### Volume
+```bash
+docker compose up krugo-bot -d
+```
 
-Volume `bot-data` примонтирован к `/app/data` — SQLite не теряется при рестарте.
+Переменные:
+- `TELEGRAM_BOT_TOKEN` — токен бота
+- `OPENAI_API_KEY` — ключ DeepSeek
+- `BOT_ENV=production`
 
-## 2. Hermes Agent
+Volume: `bot-data` → `/app/data` (SQLite)
 
-Когда Hermes Agent будет готов — раскомментировать секцию `hermes-agent` в `docker-compose.yml`. Потребуется:
+## Hermes Agent (`--profile hermes`)
 
-- Docker-образ Hermes Agent
-- `HERMES_API_KEY` — ключ доступа к агенту
-- Доступ к Docker-сокету (если агент запускает задачи в контейнерах)
+```bash
+docker compose --profile hermes up hermes -d
+```
 
-Бот нужно будет обновить: добавить HTTP-клиент для вызова Hermes Agent API (создание run, отслеживание статуса, получение результата).
+После первого запуска настроить gateway:
 
-## Порядок деплоя
+```bash
+docker compose exec hermes hermes gateway setup
+docker compose exec hermes hermes gateway start
+```
 
-1. Зайти в Dokploy → Projects → New Project
-2. Выбрать GitHub-репозиторий `giveMeYourEmailAndPassword/krugo-bot`
-3. Dokploy найдёт `docker-compose.yml` и развернёт `krugo-bot`
-4. Задать переменные окружения
-5. После деплоя проверить логи: `docker compose logs -f krugo-bot`
+Требует **отдельный Telegram-токен** (`HERMES_TELEGRAM_TOKEN`), не тот же что у krugo-bot.
+
+Volume: `hermes-data` → `/opt/data`
+
+## Деплой в Dokploy
+
+1. Projects → New → GitHub-репо
+2. Environment → задать переменные
+3. Deploy

@@ -1,4 +1,20 @@
 services:
+  # Hermes Agent — запускается, но gateway требует ручной настройки:
+  #   docker compose exec hermes hermes gateway setup
+  #   docker compose exec hermes hermes gateway start
+  hermes:
+    build:
+      context: https://github.com/NousResearch/hermes-agent.git
+      dockerfile: Dockerfile
+    environment:
+      - HERMES_HOME=/opt/data
+    volumes:
+      - hermes-data:/opt/data
+    restart: unless-stopped
+    profiles:
+      - hermes
+
+  # krugo-bot — standalone Go-бот, DeepSeek напрямую
   krugo-bot:
     build:
       context: .
@@ -6,22 +22,12 @@ services:
     environment:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.deepseek.com}
-      - AI_MODEL=${AI_MODEL:-deepseek-v4-flash}
       - DATABASE_PATH=/app/data/hermes.db
       - BOT_ENV=${BOT_ENV:-production}
     volumes:
       - bot-data:/app/data
     restart: unless-stopped
 
-  # Hermes Agent — будет добавлен когда появится образ/API
-  # hermes-agent:
-  #   image: hermes-agent:latest
-  #   environment:
-  #     - HERMES_API_KEY=${HERMES_API_KEY}
-  #   volumes:
-  #     - /var/run/docker.sock:/var/run/docker.sock
-  #   restart: unless-stopped
-
 volumes:
+  hermes-data:
   bot-data:
