@@ -1,0 +1,15 @@
+# Environment — contains real tokens, never commit
+.env
+
+# SQLite database files
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# Go binary
+krugo-bot
+
+# Log files (may contain chat content)
+*.log
+krugo-bot.log

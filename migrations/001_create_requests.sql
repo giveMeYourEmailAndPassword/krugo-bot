@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS requests (
+    id TEXT PRIMARY KEY,
+    telegram_chat_id INTEGER NOT NULL,
+    telegram_message_id INTEGER NOT NULL,
+    author_id INTEGER,
+    author_username TEXT,
+    raw_text TEXT NOT NULL,
+    client TEXT,
+    project TEXT,
+    request_type TEXT,
+    description TEXT,
+    status TEXT NOT NULL DEFAULT 'received',
+    relevance TEXT,
+    risk TEXT,
+    needs_clarification BOOLEAN DEFAULT FALSE,
+    clarification_questions TEXT,
+    summary TEXT,
+    recommendation TEXT,
+    next_action TEXT,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL
+);
