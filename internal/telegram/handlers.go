@@ -24,14 +24,14 @@ type Store interface {
 }
 // Bot orchestrates the Telegram side of Hermes.
 type Bot struct {
-	tele     *telebot.Bot
-	store    Store
-	analyzer *hermes.Analyzer
-	log      *slog.Logger
+	tele        *telebot.Bot
+	store       Store
+	hermesClient *hermes.BridgeClient
+	log         *slog.Logger
 }
 
-func NewBot(tele *telebot.Bot, store Store, analyzer *hermes.Analyzer, log *slog.Logger) *Bot {
-	b := &Bot{tele: tele, store: store, analyzer: analyzer, log: log}
+func NewBot(tele *telebot.Bot, store Store, hermesClient *hermes.BridgeClient, log *slog.Logger) *Bot {
+	b := &Bot{tele: tele, store: store, hermesClient: hermesClient, log: log}
 	b.registerHandlers()
 	return b
 }
@@ -90,44 +90,21 @@ func (b *Bot) analyzeRequest(req *tasks.Request) {
 	req.Status = tasks.StatusInProgress
 	_ = b.store.UpdateStatus(req.ID, req.Status)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer cancel()
 
-	result, err := b.analyzer.Analyze(ctx, req.RawText)
+	result, err := b.hermesClient.Analyze(ctx, req.RawText)
 	if err != nil {
-		b.log.Error("AI analysis failed", "request_id", req.ID, "error", err)
-		req.Status = tasks.StatusReadyForReview
-		req.Recommendation = "⚠️ ИИ не смог обработать заявку. Проверьте вручную."
+		b.log.Error("hermes analysis failed", "request_id", req.ID, "error", err)
+		req.Status = tasks.StatusHermesFailed
+		req.Recommendation = "Ошибка: " + err.Error()
 		_ = b.store.UpdateAnalysis(req.ID, req)
 		b.sendStatus(req)
 		return
 	}
 
-	if !result.IsRequest {
-		req.Status = tasks.StatusRejected
-		req.Recommendation = "Сообщение не является заявкой."
-		_ = b.store.UpdateAnalysis(req.ID, req)
-		return
-	}
-
-	req.Client = result.Client
-	req.Project = result.Project
-	req.RequestType = result.RequestType
-	req.Relevance = result.Relevance
-	req.Risk = result.Risk
-	req.NeedsClarification = result.NeedsClarification
-	req.ClarificationQuestions = result.ClarificationQuestions
-	req.Summary = result.Summary
-	req.Recommendation = result.Recommendation
-	req.NextAction = result.NextAction
-
-	req.Status = tasks.StatusReadyForReview
-	if result.NextAction == "ready_for_dev" {
-		req.Status = tasks.StatusReadyForDev
-	} else if result.NeedsClarification {
-		req.Status = tasks.StatusNeedsClarification
-	}
-
+	req.Recommendation = result
+	req.Status = tasks.StatusHermesResponded
 	_ = b.store.UpdateAnalysis(req.ID, req)
 	b.sendStatus(req)
 }

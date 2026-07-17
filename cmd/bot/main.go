@@ -56,11 +56,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Hermes AI analyzer.
-	ai := hermes.NewAnalyzer(cfg.OpenAIKey, cfg.OpenAIBaseURL, cfg.AIModel, log)
+	// Hermes bridge client.
+	hermesClient := hermes.NewBridgeClient(log)
 
 	// Wire everything.
-	tgBot := telegram.NewBot(bot, store, ai, log)
+	tgBot := telegram.NewBot(bot, store, hermesClient, log)
 	_ = tgBot // tgBot registers handlers in NewBot; bot starts via Start()
 
 	log.Info("bot starting", "env", cfg.BotEnv)

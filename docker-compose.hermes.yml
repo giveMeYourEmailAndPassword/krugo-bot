@@ -14,7 +14,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.hermes
-    command: ["/opt/hermes/bin/hermes-proxy"]
     environment:
       - HERMES_HOME=/opt/data
       - HERMES_BRIDGE_KEY=${HERMES_BRIDGE_KEY}

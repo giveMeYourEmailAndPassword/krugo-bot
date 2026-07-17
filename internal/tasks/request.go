@@ -5,13 +5,15 @@ import "time"
 // Status constants for request lifecycle.
 const (
 	StatusReceived          = "received"
-	StatusInProgress        = "in_progress"
+	StatusInProgress         = "in_progress"
+	StatusHermesResponded    = "hermes_responded"
+	StatusHermesFailed       = "hermes_failed"
 	StatusNeedsClarification = "needs_clarification"
+	StatusRejected          = "rejected"
 	StatusReadyForReview     = "ready_for_review"
 	StatusReadyForDev        = "ready_for_dev"
 	StatusAssigned           = "assigned"
 	StatusDone              = "done"
-	StatusRejected          = "rejected"
 )
 
 // AllStatuses returns every valid status in lifecycle order.

@@ -9,3 +9,4 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /hermes-proxy .
 FROM nousresearch/hermes-agent:latest
 COPY --from=builder /hermes-proxy /opt/hermes/bin/hermes-proxy
 RUN chmod +x /opt/hermes/bin/hermes-proxy
+ENTRYPOINT ["/opt/hermes/bin/hermes-proxy"]
