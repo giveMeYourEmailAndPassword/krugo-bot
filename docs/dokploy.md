@@ -4,10 +4,10 @@
 
 | Сервис | Профиль | Статус |
 |---|---|---|
-| `krugo-bot` | default | Готов — Go-бот + DeepSeek, детектор заявок |
-| `hermes` | `hermes` | Готов — требует ручной настройки gateway |
+| `krugo-bot` | default | Готов |
+| `hermes` | `hermes` | Требует ручной настройки gateway |
 
-Интеграция между ними ещё не реализована.
+Интеграция между ними не реализована.
 
 ## krugo-bot (default)
 
@@ -15,12 +15,9 @@
 docker compose up krugo-bot -d
 ```
 
-Переменные:
-- `TELEGRAM_BOT_TOKEN` — токен бота
-- `OPENAI_API_KEY` — ключ DeepSeek
-- `BOT_ENV=production`
+Переменные: `TELEGRAM_BOT_TOKEN`, `OPENAI_API_KEY`, `BOT_ENV=production`.
 
-Volume: `bot-data` → `/app/data` (SQLite)
+Volume: `bot-data` → `/app/data` (SQLite).
 
 ## Hermes Agent (`--profile hermes`)
 
@@ -28,16 +25,15 @@ Volume: `bot-data` → `/app/data` (SQLite)
 docker compose --profile hermes up hermes -d
 ```
 
-После первого запуска настроить gateway:
+После запуска — **в отдельном терминале** настроить Telegram-шлюз. Токен вводится в wizard, не через env:
 
 ```bash
 docker compose exec hermes hermes gateway setup
-docker compose exec hermes hermes gateway start
 ```
 
-Требует **отдельный Telegram-токен** (`HERMES_TELEGRAM_TOKEN`), не тот же что у krugo-bot.
+Gateway запускается как s6-сервис внутри контейнера (persistent). Требует **отдельный Telegram-токен**, не тот же что у krugo-bot.
 
-Volume: `hermes-data` → `/opt/data`
+Volume: `hermes-data` → `/opt/data`.
 
 ## Деплой в Dokploy
 

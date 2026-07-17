@@ -3,9 +3,7 @@ services:
   #   docker compose exec hermes hermes gateway setup
   #   docker compose exec hermes hermes gateway start
   hermes:
-    build:
-      context: https://github.com/NousResearch/hermes-agent.git
-      dockerfile: Dockerfile
+    image: nousresearch/hermes-agent:latest
     environment:
       - HERMES_HOME=/opt/data
     volumes:
