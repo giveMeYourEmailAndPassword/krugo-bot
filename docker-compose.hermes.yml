@@ -6,6 +6,9 @@ services:
       - HERMES_HOME=/opt/data
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
       - TELEGRAM_ALLOWED_USERS=${TELEGRAM_ALLOWED_USERS:-}
+      - PB_URL=${PB_URL:?required}
+      - PB_USER=${PB_USER:?required}
+      - PB_PASS=${PB_PASS:?required}
     volumes:
       - hermes-data:/opt/data
     restart: unless-stopped
@@ -17,10 +20,12 @@ services:
     environment:
       - HERMES_HOME=/opt/data
       - HERMES_BRIDGE_KEY=${HERMES_BRIDGE_KEY}
+      - PB_URL=${PB_URL:?required}
+      - PB_USER=${PB_USER:?required}
+      - PB_PASS=${PB_PASS:?required}
     volumes:
       - hermes-data:/opt/data
     network_mode: host
     restart: unless-stopped
-
 volumes:
   hermes-data:
