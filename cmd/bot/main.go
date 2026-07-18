@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strconv"
-	"strings"
 	"syscall"
 	"time"
 
@@ -57,25 +55,13 @@ func main() {
 		log.Error("create bot", "error", err)
 		os.Exit(1)
 	}
-
-	// Parse allowed user IDs
-	var allowedIDs []int64
-	if raw := os.Getenv("TELEGRAM_ALLOWED_USERS"); raw != "" {
-		for _, s := range strings.Split(raw, ",") {
-			s = strings.TrimSpace(s)
-			if id, err := strconv.ParseInt(s, 10, 64); err == nil {
-				allowedIDs = append(allowedIDs, id)
-			}
-		}
-	}
-
 	// Hermes bridge client.
 	hermesClient := hermes.NewBridgeClient(log)
 
 	// Wire everything.
-	tgBot := telegram.NewBot(bot, store, hermesClient, log, allowedIDs)
-	_ = tgBot // tgBot registers handlers in NewBot; bot starts via Start()
+	tgBot := telegram.NewBot(bot, store, hermesClient, log, cfg.AllowedUsers)
 
+	_ = tgBot
 	log.Info("bot starting", "env", cfg.BotEnv)
 
 	// Graceful shutdown.

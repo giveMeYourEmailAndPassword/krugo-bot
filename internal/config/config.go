@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -15,6 +16,7 @@ type Config struct {
 	AIModel       string
 	DatabasePath  string
 	BotEnv        string
+	AllowedUsers  []int64
 }
 
 // Load reads configuration from environment variables.
@@ -33,6 +35,19 @@ func Load() (*Config, error) {
 	}
 	if cfg.OpenAIKey == "" {
 		return nil, fmt.Errorf("OPENAI_API_KEY is required")
+	}
+
+	raw := os.Getenv("TELEGRAM_ALLOWED_USERS")
+	if raw == "" {
+		return nil, fmt.Errorf("TELEGRAM_ALLOWED_USERS is required")
+	}
+	for _, s := range strings.Split(raw, ",") {
+		s = strings.TrimSpace(s)
+		id, err := strconv.ParseInt(s, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid TELEGRAM_ALLOWED_USERS value: %q", s)
+		}
+		cfg.AllowedUsers = append(cfg.AllowedUsers, id)
 	}
 
 	cfg.OpenAIBaseURL = strings.TrimRight(cfg.OpenAIBaseURL, "/")

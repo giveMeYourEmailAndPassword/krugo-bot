@@ -47,8 +47,12 @@ func (b *Bot) registerHandlers() {
 // handleText processes incoming group text messages.
 func (b *Bot) handleText(c telebot.Context) error {
 	text := c.Text()
+	sender := c.Sender()
 
-	// /status HERMES-XXXX — check request status
+	if !b.allowedUsers[sender.ID] {
+		return nil
+	}
+
 	if strings.HasPrefix(strings.ToLower(text), "/status") {
 		return b.handleStatus(c, text)
 	}
@@ -58,12 +62,6 @@ func (b *Bot) handleText(c telebot.Context) error {
 	}
 
 	chat := c.Chat()
-	sender := c.Sender()
-
-	// Allowlist check — only listed users can trigger requests
-	if len(b.allowedUsers) > 0 && !b.allowedUsers[sender.ID] {
-		return nil
-	}
 
 	req := &tasks.Request{
 		ID:                generateID(),
@@ -172,6 +170,10 @@ func (b *Bot) handleCallback(c telebot.Context) error {
 	data := c.Callback().Data
 	if !strings.HasPrefix(data, "action:") {
 		return nil
+	}
+
+	if !b.allowedUsers[c.Callback().Sender.ID] {
+		return c.Respond(&telebot.CallbackResponse{Text: "Нет доступа"})
 	}
 
 	action := strings.TrimPrefix(data, "action:")
