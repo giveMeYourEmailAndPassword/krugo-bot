@@ -1,7 +1,7 @@
 ---
 name: contracts
-description: "Update contracts: providers, applications, contracts"
-version: 2.3.0
+description: "Update contracts with numbered supplier blocks: изменить/добавить/удалить"
+version: 3.0.0
 author: Krugo-Bot
 metadata:
   hermes:
@@ -10,8 +10,7 @@ metadata:
 
 # Работа с договорами
 
-База: `$PB_URL`. Superuser: `$PB_USER`/`$PB_PASS`.
-Режим: выполняй сразу, без подтверждения.
+База: `$PB_URL`. Superuser: `$PB_USER`/`$PB_PASS`. Режим: выполняй сразу.
 
 ## Токен
 
@@ -19,47 +18,93 @@ metadata:
 TOKEN=$(jq -n --arg u "$PB_USER" --arg p "$PB_PASS" '{identity: $u, password: $p}' | curl -s -X POST "$PB_URL/api/collections/_superusers/auth-with-password" -H "Content-Type: application/json" -d @- | jq -r '.token')
 ```
 
+## Структура
+
+- `applications` — заявки: provider_id, number, amount, currency, is_primary, contract_id
+- `contracts` — договор: tour_operator, netto_price, brutto_price
+- У договора может быть НЕСКОЛЬКО applications
+
+## Парсинг заявки
+
+### Блоки поставщиков
+
+```
+Поставщик #N: изменить
+  Был: НАЗВАНИЕ
+  Стал: НАЗВАНИЕ
+  Номер заявки был: XXXXXX
+  Номер заявки стал: XXXXXX
+  Сумма была: ЧИСЛО
+  Сумма стала: ЧИСЛО
+
+Поставщик #N: добавить
+  Название: НАЗВАНИЕ
+  Номер заявки: XXXXXX
+  Сумма: ЧИСЛО
+
+Поставщик #N: удалить
+  Был: НАЗВАНИЕ
+  Номер заявки был: XXXXXX
+```
+
+### Финансы договора
+
+```
+Нетто договора было: ЧИСЛО
+Нетто договора стало: ЧИСЛО
+Брутто договора было: ЧИСЛО
+Брутто договора стало: ЧИСЛО
+```
+
 ## Порядок
 
-### 1. GET договора — узнай текущие значения
+### 1. GET текущего состояния
+
 ```bash
 cid="ID_ДОГОВОРА"
 curl -s "$PB_URL/api/collections/contracts/records/$cid" -H "Authorization: Bearer $TOKEN" | jq "{tour_operator, netto_price, brutto_price}"
-curl -s -G "$PB_URL/api/collections/applications/records" --data-urlencode "filter=(contract_id=\"$cid\")" -H "Authorization: Bearer $TOKEN" | jq ".items[] | {id, number, amount, currency, provider_id}"
+curl -s -G "$PB_URL/api/collections/applications/records" --data-urlencode "filter=(contract_id=\"$cid\")" --data-urlencode "expand=provider_id" -H "Authorization: Bearer $TOKEN" | jq ".items[] | {id, number, amount, is_primary, provider: .expand.provider_id.name}"
 ```
 
-### 2. Найти нового поставщика (только если меняется)
+### 2. Для каждого блока «Поставщик #N»
+
+**Идентификация:** найти application по `номеру заявки И поставщику`. Если несколько — ошибка, не продолжай.
+
+**изменить** — PATCH только указанных полей:
+```bash
+# Новый поставщик + номер + сумма
+jq -n '{"provider_id":"НОВЫЙ_ID", "number":"НОМЕР", "amount":СУММА}' | curl -s -X PATCH "$PB_URL/api/collections/applications/records/APP_ID" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d @-
+
+# Только номер
+jq -n '{"number":"НОМЕР"}' | curl -s -X PATCH "$PB_URL/api/collections/applications/records/APP_ID" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d @-
+```
+
+**добавить** — POST:
+```bash
+jq -n '{"contract_id":"ID_ДОГОВОРА", "provider_id":"ID", "number":"НОМЕР", "amount":СУММА, "currency":"USD", "type":"supplier", "is_primary":false, "status":"active"}' | curl -s -X POST "$PB_URL/api/collections/applications/records" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d @-
+```
+
+**удалить** — DELETE:
+```bash
+curl -s -X DELETE "$PB_URL/api/collections/applications/records/APP_ID" -H "Authorization: Bearer $TOKEN"
+```
+
+### 3. Найти поставщика в providers
+
 ```bash
 curl -s "$PB_URL/api/collections/providers/records?perPage=100" -H "Authorization: Bearer $TOKEN" | jq ".items[] | select(.name | test(\"ИМЯ\"; \"i\")) | {id, name}"
 ```
+Если найдено 0 или >1 — ошибка. После успешного PATCH основного поставщика также обнови `contracts.tour_operator` на его имя.
 
-### 3. Собрать PATCH — ТОЛЬКО указанные в заявке поля
+### 4. Договор — PATCH только если «Нетто/Брутто договора» указаны
 
-**НЕ включай поля, которые не просили менять.** Собери payload изменившихся полей.
-
-Для application (если меняется поставщик/номер/сумма):
 ```bash
-# Пример: только номер и сумма
-jq -n '{"number":"НОВЫЙ", "amount":НОВАЯ_СУММА}' | curl -s -X PATCH "$PB_URL/api/collections/applications/records/ID_ЗАЯВКИ" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d @-
+jq -n '{"netto_price":95, "brutto_price":120}' | curl -s -X PATCH "$PB_URL/api/collections/contracts/records/$cid" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d @-
 ```
 
-Для contract (если меняется нетто/брутто/туроператор):
-```bash
-# Пример: только нетто
-jq -n '{"netto_price":НОВАЯ_СУММА}' | curl -s -X PATCH "$PB_URL/api/collections/contracts/records/$cid" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d @-
-
-# Пример: нетто + брутто
-jq -n '{"netto_price":92, "brutto_price":110}' | curl -s -X PATCH "$PB_URL/api/collections/contracts/records/$cid" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d @-
-```
-
-### 4. Проверка — GET после PATCH
+### 5. Проверка
 
 ```bash
-curl -s "$PB_URL/api/collections/applications/records/ID_ЗАЯВКИ?expand=provider_id" -H "Authorization: Bearer $TOKEN" | jq "{number, amount, provider: .expand.provider_id.name}"
+curl -s -G "$PB_URL/api/collections/applications/records" --data-urlencode "filter=(contract_id=\"$cid\")" --data-urlencode "expand=provider_id" -H "Authorization: Bearer $TOKEN" | jq ".items[] | {number, amount, is_primary, provider: .expand.provider_id.name}"
 curl -s "$PB_URL/api/collections/contracts/records/$cid" -H "Authorization: Bearer $TOKEN" | jq "{tour_operator, netto_price, brutto_price}"
 ```
-
-## Коллекции
-- `providers` — поставщики (id, name)
-- `applications` — заявки (contract_id, provider_id, number, amount, currency)
-- `contracts` — договоры (tour_operator, netto_price, brutto_price, price_split)
