@@ -18,6 +18,11 @@ func LooksLikeRequest(text string) bool {
 		"изменить",
 		"добавить",
 		"удалить",
+		"договор",
+		"поставщик",
+		"нетто",
+		"номер заявки",
+		"baza.krugo.tours",
 	}
 
 	score := 0
