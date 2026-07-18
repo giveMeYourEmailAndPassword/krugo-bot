@@ -24,19 +24,21 @@ type Store interface {
 }
 // Bot orchestrates the Telegram side of Hermes.
 type Bot struct {
-	tele        *telebot.Bot
-	store       Store
+	tele         *telebot.Bot
+	store        Store
 	hermesClient *hermes.BridgeClient
-	log         *slog.Logger
+	log          *slog.Logger
+	allowedUsers map[int64]bool
 }
 
-func NewBot(tele *telebot.Bot, store Store, hermesClient *hermes.BridgeClient, log *slog.Logger) *Bot {
-	b := &Bot{tele: tele, store: store, hermesClient: hermesClient, log: log}
+func NewBot(tele *telebot.Bot, store Store, hermesClient *hermes.BridgeClient, log *slog.Logger, allowedIDs []int64) *Bot {
+	b := &Bot{tele: tele, store: store, hermesClient: hermesClient, log: log, allowedUsers: make(map[int64]bool)}
+	for _, id := range allowedIDs {
+		b.allowedUsers[id] = true
+	}
 	b.registerHandlers()
 	return b
 }
-
-
 func (b *Bot) registerHandlers() {
 	b.tele.Handle(telebot.OnText, b.handleText)
 	b.tele.Handle(telebot.OnCallback, b.handleCallback)
@@ -57,6 +59,11 @@ func (b *Bot) handleText(c telebot.Context) error {
 
 	chat := c.Chat()
 	sender := c.Sender()
+
+	// Allowlist check — only listed users can trigger requests
+	if len(b.allowedUsers) > 0 && !b.allowedUsers[sender.ID] {
+		return nil
+	}
 
 	req := &tasks.Request{
 		ID:                generateID(),
