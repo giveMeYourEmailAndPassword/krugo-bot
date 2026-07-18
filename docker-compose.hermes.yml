@@ -11,6 +11,7 @@ services:
       - PB_PASS=${PB_PASS:?required}
     volumes:
       - hermes-data:/opt/data
+      - ./hermes/skills/contracts/SKILL.md:/opt/data/skills/contracts/SKILL.md:ro
     restart: unless-stopped
 
   hermes-proxy:
@@ -25,7 +26,8 @@ services:
       - PB_PASS=${PB_PASS:?required}
     volumes:
       - hermes-data:/opt/data
-    network_mode: host
+      - ./hermes/skills/contracts/SKILL.md:/opt/data/skills/contracts/SKILL.md:ro
     restart: unless-stopped
+    network_mode: host
 volumes:
   hermes-data:
