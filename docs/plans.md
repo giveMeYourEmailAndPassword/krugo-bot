@@ -1,47 +1,48 @@
 # План разработки Krugo Bot
 
-## Текущая стадия: MVP (этапы 1–3 завершены)
+## Текущая стадия: интеграция Hermes + PocketBase (18.07.2026)
 
 ### ✅ Этап 1 — Фундамент
 - Go-модуль, структура проекта
-- Конфигурация из env-переменных (Telegram, DeepSeek, БД)
+- Конфигурация из env-переменных
 - SQLite-хранилище с авто-миграцией (WAL mode)
 - Структурированное логирование (slog)
 
 ### ✅ Этап 2 — Ядро
-- Локальный детектор заявок (`LooksLikeRequest`, ≥2 маркеров)
-- Модель заявки + 8 статусов lifecycle
-- AI-анализатор: DeepSeek API, системный промпт Hermes, JSON mode
+- Локальный детектор заявок (15 маркеров, ≥2 для срабатывания)
+- Модель заявки + статусы (включая hermes_responded, hermes_failed)
 - Команда `/status HERMES-XXXX`
+- TELEGRAM_ALLOWED_USERS — обязательный allowlist
 
-### ✅ Этап 3 — Telegram-бот
-- `telebot.v3`: long polling, приём сообщений, callback-запросы
-- Flow: детекция → ack → async DeepSeek → статус с кнопками
-- Inline-кнопки: «Передать в dev», «Уточнение», «Назначить», «Закрыть»
+### ✅ Этап 3 — Telegram-бот + Hermes Agent
+- `telebot.v3`: long polling, приём сообщений, callback, allowlist
+- Hermes Agent: `nousresearch/hermes-agent:latest` (DeepSeek v4-flash, s6-overlay)
+- Hermes gateway Telegram (второй бот)
+- hermes-proxy: HTTP API к Hermes (auth, mutex, 15m timeout)
+
+### ✅ Этап 4 — PocketBase интеграция
+- contracts skill v2.1: providers → applications → contracts
+- Полный цикл: поиск поставщика, поиск заявки, PATCH application + contract, проверка
+- Auto-execute: без подтверждения, сразу действие + отчёт
 
 ### ✅ Инфраструктура
-- Dockerfile (multi-stage, alpine)
-- Railway config (`railway.json`)
-- Git-репозиторий, `.gitignore`
+- Dokploy: два Compose (bot + hermes)
+- `network_mode: host` для обхода VPS firewall
+- Persistent volumes: `bot-data`, `hermes-data`
+- Git-репозиторий, `.gitignore`, AGENTS.md, `.omp/AGENTS.md`
 
 ---
 
-## Что осталось
+## Следующий этап — Аудит изменений
 
-### Этап 4 — Hermes Agent (серверный)
-- [ ] Установка Hermes на сервер
-- [ ] Интеграция: бот → Hermes Agent API (create run)
-- [ ] Отслеживание статуса: `queued → running → completed/failed`
-- [ ] Возврат результата из проекта в чат
-- [ ] Разделение: AI-анализ заявки vs статус выполнения в проекте
+### Бэкенд-аудит (krugo-bot, не Hermes)
+- [ ] SQLite таблица `audit_log`: request_id, contract_id, app_id, old_json, new_json, user, timestamp
+- [ ] Запись при каждом успешном PATCH (GET before → GET after → diff → insert)
+- [ ] Команда `/history HERMES-XXXX` — все изменения по заявке
+- [ ] Формат вывода: `[дата] @user: договор X / поле Y: А → Б`
 
-### Этап 5 — Интеграции
-- [ ] Jira / Linear / Notion / внутренняя система задач
-- [ ] Назначение ответственного через кнопку «Назначить»
-- [ ] Дубликаты: проверка существующих заявок перед созданием
-
-### Этап 6 — Production
-- [ ] Миграция с SQLite на PostgreSQL (при росте нагрузки)
-- [ ] Healthcheck-эндпоинт для Railway
-- [ ] Метрики (Prometheus)
-- [ ] Тесты
+### Дальше
+- [ ] Workspace volume для Hermes (доступ к репозиторию проекта)
+- [ ] Интеграция с Jira / Linear / внутренней системой
+- [ ] Миграция SQLite → PostgreSQL при росте
+- [ ] Healthcheck, метрики, тесты
