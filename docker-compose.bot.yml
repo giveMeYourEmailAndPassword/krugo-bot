@@ -10,6 +10,7 @@ services:
       - HERMES_BRIDGE_URL=http://127.0.0.1:8080
       - DATABASE_PATH=/app/data/hermes.db
       - BOT_ENV=${BOT_ENV:-production}
+      - TELEGRAM_ALLOWED_USERS=${TELEGRAM_ALLOWED_USERS:?required}
     volumes:
       - bot-data:/app/data
     network_mode: host
