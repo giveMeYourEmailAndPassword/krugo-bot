@@ -58,7 +58,7 @@ func (b *Bot) handleStart(c telebot.Context) error {
 	msg := "Круго-Бот готов к работе.\n\n" +
 		"Команды:\n" +
 		"/start — это сообщение\n" +
-		"/status HERMES-XXXX — статус заявки\n" +
+		"/status KRUG-XXXX — статус заявки\n" +
 		"/history ID_ДОГОВОРА — история изменений договора\n\n" +
 		"Или просто отправьте заявку по шаблону."
 	return c.Send(msg)
@@ -122,7 +122,7 @@ func (b *Bot) analyzeRequest(req *tasks.Request) {
 
 	result, err := b.hermesClient.Analyze(ctx, req.RawText)
 	if err != nil {
-		b.log.Error("hermes analysis failed", "request_id", req.ID, "error", err)
+		b.log.Error("analysis failed", "request_id", req.ID, "error", err)
 		req.Status = tasks.StatusHermesFailed
 		req.Recommendation = "Ошибка: " + err.Error()
 		_ = b.store.UpdateAnalysis(req.ID, req)
@@ -237,8 +237,8 @@ func (b *Bot) handleCallback(c telebot.Context) error {
 	}
 
 	req.Status = newStatus
-	label := statusLabel(newStatus)
 
+	label := statusLabel(newStatus)
 	return c.Respond(&telebot.CallbackResponse{
 		Text: fmt.Sprintf("Статус заявки %s: %s", reqID, label),
 	})
@@ -264,8 +264,8 @@ func statusLabel(s string) string {
 		tasks.StatusAssigned:           "назначен",
 		tasks.StatusDone:               "закрыто",
 		tasks.StatusRejected:           "отклонено",
-		tasks.StatusHermesResponded:    "ответ Hermes",
-		tasks.StatusHermesFailed:       "ошибка Hermes",
+		tasks.StatusHermesResponded:    "ответ Krugosvet helper",
+		tasks.StatusHermesFailed:       "ошибка Krugosvet helper",
 	}
 	if l, ok := labels[s]; ok {
 		return l
@@ -273,11 +273,11 @@ func statusLabel(s string) string {
 	return s
 }
 
-// handleStatus responds to /status HERMES-XXXX.
+// handleStatus responds to /status KRUG-XXXX.
 func (b *Bot) handleStatus(c telebot.Context, text string) error {
 	parts := strings.Fields(text)
 	if len(parts) < 2 {
-		return c.Reply("Укажите ID заявки: /status HERMES-XXXX")
+		return c.Reply("Укажите ID заявки: /status KRUG-XXXX")
 	}
 
 	reqID := strings.ToUpper(parts[1])
@@ -383,5 +383,5 @@ func getAuditLog(pbURL, token, contractID string) ([]map[string]interface{}, err
 }
 
 func generateID() string {
-	return fmt.Sprintf("HERMES-%d", time.Now().UnixNano()%100000)
+	return fmt.Sprintf("KRUG-%d", time.Now().UnixNano()%100000)
 }
