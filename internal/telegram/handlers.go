@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"os"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -140,12 +141,24 @@ func (b *Bot) analyzeRequest(req *tasks.Request) {
 		return
 	}
 
-	req.Recommendation = result
+	req.Recommendation = cleanRecommendation(result)
 	req.Status = tasks.StatusHermesResponded
 	_ = b.store.UpdateAnalysis(req.ID, req)
 	b.sendStatus(req)
 }
 
+// cleanRecommendation strips price_split section and converts **text** to <b>text</b>.
+func cleanRecommendation(text string) string {
+	// Remove price split section
+	re := regexp.MustCompile(`(?is)(Price Split|price.split|price_split).*`)
+	text = re.ReplaceAllString(text, "")
+
+	// Convert **text** to <b>text</b>
+	boldRe := regexp.MustCompile(`\*\*(.+?)\*\*`)
+	text = boldRe.ReplaceAllString(text, "<b>$1</b>")
+
+	return strings.TrimSpace(text)
+}
 func (b *Bot) sendStatus(req *tasks.Request) {
 	text := formatStatus(req)
 	markup := mainKeyboard()
