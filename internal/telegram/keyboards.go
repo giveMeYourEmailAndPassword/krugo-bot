@@ -2,29 +2,29 @@ package telegram
 
 import "gopkg.in/telebot.v3"
 
-// mainKeyboard builds the primary inline keyboard for request actions.
+// mainKeyboard — кнопки после обработки заявки.
 func mainKeyboard() *telebot.ReplyMarkup {
 	markup := &telebot.ReplyMarkup{}
 	markup.Inline(
 		markup.Row(
-			markup.Data("Передать в dev", "action:ready_for_dev"),
-			markup.Data("Нужно уточнение", "action:needs_clarification"),
-		),
-		markup.Row(
-			markup.Data("Назначить", "action:assigned"),
-			markup.Data("Закрыть", "action:done"),
+			markup.Data("📝 Изменить договор", "tpl:contract_change"),
 		),
 	)
 	return markup
 }
 
-// closeKeyboard builds a simple close-only inline keyboard.
-func closeKeyboard() *telebot.ReplyMarkup {
-	markup := &telebot.ReplyMarkup{}
-	markup.Inline(
-		markup.Row(
-			markup.Data("Закрыть", "action:done"),
-		),
-	)
-	return markup
+// contractTemplate возвращает шаблон заявки на изменение договора.
+func contractTemplate() string {
+	return `Заявка на изменение договора
+Договор: https://baza.krugo.tours/contracts/
+
+Поставщик #1: изменить
+  Был:
+  Стал:
+  Номер заявки был:
+  Номер заявки стал:
+  Сумма была:
+  Сумма стала:
+
+Остальное не менять`
 }

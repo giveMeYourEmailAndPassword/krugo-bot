@@ -175,6 +175,16 @@ func formatStatus(req *tasks.Request) string {
 // handleCallback processes inline button presses.
 func (b *Bot) handleCallback(c telebot.Context) error {
 	data := c.Callback().Data
+
+
+	if !b.allowedUsers[c.Callback().Sender.ID] {
+		return c.Respond(&telebot.CallbackResponse{Text: "Нет доступа"})
+	}
+	// Template buttons
+	if strings.HasPrefix(data, "tpl:") {
+		return b.handleTemplate(c, data)
+	}
+
 	if !strings.HasPrefix(data, "action:") {
 		return nil
 	}
@@ -263,6 +273,15 @@ func (b *Bot) handleStatus(c telebot.Context, text string) error {
 
 	msg := formatStatus(req)
 	return c.Reply(msg, &telebot.SendOptions{ParseMode: telebot.ModeHTML})
+}
+
+// handleTemplate responds to template button callbacks.
+func (b *Bot) handleTemplate(c telebot.Context, data string) error {
+	switch data {
+	case "tpl:contract_change":
+		return c.Send(contractTemplate())
+	}
+	return c.Respond(&telebot.CallbackResponse{Text: "Шаблон не найден"})
 }
 
 // handleHistory responds to /history <contract_id>.
