@@ -44,10 +44,25 @@ func NewBot(tele *telebot.Bot, store Store, hermesClient *hermes.BridgeClient, l
 	return b
 }
 func (b *Bot) registerHandlers() {
+	b.tele.Handle("/start", b.handleStart)
+	b.tele.Handle("/help", b.handleStart)
 	b.tele.Handle(telebot.OnText, b.handleText)
 	b.tele.Handle(telebot.OnCallback, b.handleCallback)
 }
 
+// handleStart responds to /start and /help.
+func (b *Bot) handleStart(c telebot.Context) error {
+	if !b.allowedUsers[c.Sender().ID] {
+		return nil
+	}
+	msg := "Круго-Бот готов к работе.\n\n" +
+		"Команды:\n" +
+		"/start — это сообщение\n" +
+		"/status HERMES-XXXX — статус заявки\n" +
+		"/history ID_ДОГОВОРА — история изменений договора\n\n" +
+		"Или просто отправьте заявку по шаблону."
+	return c.Send(msg)
+}
 // handleText processes incoming group text messages.
 func (b *Bot) handleText(c telebot.Context) error {
 	text := c.Text()
