@@ -73,6 +73,10 @@ func (s *SQLiteStore) migrate() error {
 	if err != nil {
 		return err
 	}
+
+	// Clean up existing duplicates before creating unique index
+	s.db.Exec(`DELETE FROM requests WHERE rowid NOT IN (SELECT MIN(rowid) FROM requests GROUP BY telegram_chat_id, telegram_message_id)`)
+
 	_, err = s.db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_requests_msg ON requests(telegram_chat_id, telegram_message_id)`)
 	return err
 }
