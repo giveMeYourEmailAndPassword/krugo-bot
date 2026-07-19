@@ -9,7 +9,7 @@ func TestValidateTemplate(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "unfilled template from button — reject",
+			name: "unfilled template — reject",
 			text: `Заявка на изменение договора
 
 Договор: (ссылка на договор)
@@ -24,13 +24,11 @@ func TestValidateTemplate(t *testing.T) {
 Поставщик #2: добавить
   Название: НовыйПоставщик
   Номер заявки: новый
-  Цена: значение
-
-Блоки #3, #4 — по необходимости. Ненужные строки и блоки удалите.`,
+  Цена: значение`,
 			wantErr: true,
 		},
 		{
-			name: "filled #1 change — accept",
+			name: "filled change — accept",
 			text: `Заявка на изменение договора
 
 Договор: https://baza.krugo.tours/contracts/t85493bo3ky8ccs
@@ -39,9 +37,7 @@ func TestValidateTemplate(t *testing.T) {
   Был: BEST SERVICE
   Стал: ANEX
   Номер заявки был: 777777
-  Номер заявки стал: 111222
-
-Оставьте только поля, которые нужно изменить`,
+  Номер заявки стал: 111222`,
 			wantErr: false,
 		},
 		{
@@ -56,31 +52,19 @@ func TestValidateTemplate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "partially filled — reject",
+			name: "add with placeholder name — reject",
 			text: `Заявка на изменение договора
 
 Договор: https://baza.krugo.tours/contracts/t85493bo3ky8ccs
 
-Поставщик #1: изменить
-  Был: текущий
-  Стал: ANEX
-  Номер заявки был: 777777
-  Номер заявки стал: 111222`,
+Поставщик #2: добавить
+  Название: НовыйПоставщик
+  Номер заявки: 222222
+  Цена: 45`,
 			wantErr: true,
 		},
 		{
-			name: "valid with netto change — accept",
-			text: `Заявка на изменение договора
-
-Договор: https://baza.krugo.tours/contracts/t85493bo3ky8ccs
-
-Нетто договора: 80 → 95
-
-Остальное — не меняется`,
-			wantErr: false,
-		},
-		{
-			name: "add supplier with real values — accept",
+			name: "price left as placeholder — reject",
 			text: `Заявка на изменение договора
 
 Договор: https://baza.krugo.tours/contracts/t85493bo3ky8ccs
@@ -88,7 +72,35 @@ func TestValidateTemplate(t *testing.T) {
 Поставщик #2: добавить
   Название: KOMPAS
   Номер заявки: 222222
-  Цена: 45`,
+  Цена: значение`,
+			wantErr: true,
+		},
+		{
+			name: "valid netto change — accept",
+			text: `Заявка на изменение договора
+
+Договор: https://baza.krugo.tours/contracts/t85493bo3ky8ccs
+
+Нетто договора: 80 → 95`,
+			wantErr: false,
+		},
+		{
+			name: "real user message with partial arrow — accept",
+			text: `Заявка на изменение договора
+
+Договор: https://baza.krugo.tours/contracts/a1h4z2hrrgi6zuz
+
+Поставщик #1: изменить
+  Был: ВИЗА СОЦ
+  Стал: JoinUP
+  Номер заявки был: 123
+  Номер заявки стал: 777
+  Цена: текущая → 800
+
+Поставщик #2: добавить
+  Название: Великолепный Век
+  Номер заявки: 90900
+  Цена: 700`,
 			wantErr: false,
 		},
 	}

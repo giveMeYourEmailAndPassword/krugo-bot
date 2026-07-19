@@ -8,13 +8,11 @@ import (
 var contractIDRe = regexp.MustCompile(`baza\.krugo\.tours/contracts/([A-Za-z0-9_-]+)`)
 
 var templatePlaceholders = []string{
-	"(ссылка на договор)", "Был: текущий", "Название: НовыйПоставщик",
-	"Цена: значение", "текущий →", "текущее →", "текущая →",
+	"(ссылка на договор)",
+	"Название: НовыйПоставщик",
+	"Цена: значение",
 }
-
 // validateTemplate checks that the message is not an unfilled template
-// and that it contains a valid contract URL with ID.
-// Returns "" if valid, or an error message if rejected.
 func validateTemplate(text string) string {
 	lower := strings.ToLower(text)
 
