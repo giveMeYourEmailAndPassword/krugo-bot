@@ -190,7 +190,7 @@ func formatStatus(req *tasks.Request) string {
 // handleCallback processes inline button presses.
 func (b *Bot) handleCallback(c telebot.Context) error {
 	data := c.Callback().Data
-	b.log.Debug("callback", "data", data)
+	data = strings.TrimSpace(c.Callback().Data)
 
 
 	if !b.allowedUsers[c.Callback().Sender.ID] {
