@@ -11,6 +11,9 @@ services:
       - DATABASE_PATH=/app/data/hermes.db
       - BOT_ENV=${BOT_ENV:-production}
       - TELEGRAM_ALLOWED_USERS=${TELEGRAM_ALLOWED_USERS:?required}
+      - PB_URL=${PB_URL:?required}
+      - PB_USER=${PB_USER:?required}
+      - PB_PASS=${PB_PASS:?required}
     volumes:
       - bot-data:/app/data
     network_mode: host

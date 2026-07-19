@@ -102,9 +102,25 @@ curl -s "$PB_URL/api/collections/providers/records?perPage=100" -H "Authorizatio
 jq -n '{"netto_price":95, "brutto_price":120}' | curl -s -X PATCH "$PB_URL/api/collections/contracts/records/$cid" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d @-
 ```
 
-### 5. Проверка
+### 6. Аудит — записать каждое изменение
+
+После ВСЕХ PATCH/POST/DELETE запиши в `contract_audit_log`:
 
 ```bash
-curl -s -G "$PB_URL/api/collections/applications/records" --data-urlencode "filter=(contract_id=\"$cid\")" --data-urlencode "expand=provider_id" -H "Authorization: Bearer $TOKEN" | jq ".items[] | {number, amount, is_primary, provider: .expand.provider_id.name}"
-curl -s "$PB_URL/api/collections/contracts/records/$cid" -H "Authorization: Bearer $TOKEN" | jq "{tour_operator, netto_price, brutto_price}"
+jq -n --arg cid "$cid" --arg action "update_supplier" --arg old "СТАРОЕ" --arg new "НОВОЕ" \
+  '{"contract_id": $cid, "action": $action, "old_value": $old, "new_value": $new}' | \
+curl -s -X POST "$PB_URL/api/collections/contract_audit_log/records" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d @-
 ```
+
+Формат записи:
+- `contract_id` — ID договора
+- `action` — что сделано: `update_supplier`, `update_amount`, `update_netto`, `update_brutto`, `add_supplier`, `delete_supplier`
+- `old_value` — JSON: `{"field": "tour_operator", "was": "BEST SERVICE"}`
+- `new_value` — JSON: `{"field": "tour_operator", "became": "ANEX"}`
+- `description` — текстовое описание: «Поставщик: BEST SERVICE → ANEX»
+
+На каждое изменение — отдельная запись.
+
+### 7. Проверка
+

@@ -1,10 +1,14 @@
 package telegram
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"html"
 	"log/slog"
+	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -53,6 +57,9 @@ func (b *Bot) handleText(c telebot.Context) error {
 		return nil
 	}
 
+	if strings.HasPrefix(strings.ToLower(text), "/history") {
+		return b.handleHistory(c, text)
+	}
 	if strings.HasPrefix(strings.ToLower(text), "/status") {
 		return b.handleStatus(c, text)
 	}
@@ -256,6 +263,89 @@ func (b *Bot) handleStatus(c telebot.Context, text string) error {
 
 	msg := formatStatus(req)
 	return c.Reply(msg, &telebot.SendOptions{ParseMode: telebot.ModeHTML})
+}
+
+// handleHistory responds to /history <contract_id>.
+func (b *Bot) handleHistory(c telebot.Context, text string) error {
+	parts := strings.Fields(text)
+	if len(parts) < 2 {
+		return c.Reply("Укажите ID договора: /history t85493bo3ky8ccs")
+	}
+
+	contractID := parts[1]
+
+	pbURL := os.Getenv("PB_URL")
+	pbUser := os.Getenv("PB_USER")
+	pbPass := os.Getenv("PB_PASS")
+
+	if pbURL == "" || pbUser == "" || pbPass == "" {
+		return c.Reply("PB_URL, PB_USER, PB_PASS не заданы в окружении")
+	}
+
+	// Get token
+	token, err := getPBToken(pbURL, pbUser, pbPass)
+	if err != nil {
+		return c.Reply("Ошибка доступа к базе: " + err.Error())
+	}
+
+	// Get audit log
+	records, err := getAuditLog(pbURL, token, contractID)
+	if err != nil {
+		return c.Reply("Ошибка чтения аудита: " + err.Error())
+	}
+
+	if len(records) == 0 {
+		return c.Reply("Нет записей аудита для договора " + contractID)
+	}
+
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("История изменений договора %s:\n\n", contractID))
+	for _, r := range records {
+		created := r["created"].(string)[:19]
+		created = strings.Replace(created, "T", " ", 1)
+		action := r["action"].(string)
+		desc := ""
+		if d, ok := r["description"]; ok && d != nil {
+			desc = d.(string)
+		}
+		sb.WriteString(fmt.Sprintf("[%s] %s: %s\n", created, action, desc))
+	}
+
+	return c.Reply(sb.String())
+}
+
+func getPBToken(pbURL, user, pass string) (string, error) {
+	body, _ := json.Marshal(map[string]string{"identity": user, "password": pass})
+	resp, err := http.Post(pbURL+"/api/collections/_superusers/auth-with-password", "application/json", bytes.NewReader(body))
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	var result map[string]interface{}
+	json.NewDecoder(resp.Body).Decode(&result)
+	if t, ok := result["token"]; ok {
+		return t.(string), nil
+	}
+	return "", fmt.Errorf("auth failed: %d", resp.StatusCode)
+}
+
+func getAuditLog(pbURL, token, contractID string) ([]map[string]interface{}, error) {
+	url := fmt.Sprintf("%s/api/collections/contract_audit_log/records?perPage=20&sort=-created&filter=(contract_id=\"%s\")", pbURL, contractID)
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	var result map[string]interface{}
+	json.NewDecoder(resp.Body).Decode(&result)
+	items, _ := result["items"].([]interface{})
+	var records []map[string]interface{}
+	for _, item := range items {
+		records = append(records, item.(map[string]interface{}))
+	}
+	return records, nil
 }
 
 func generateID() string {
