@@ -241,7 +241,6 @@ func (b *Bot) handleCallback(c telebot.Context) error {
 	if err := b.store.UpdateStatus(reqID, newStatus); err != nil {
 		return c.Respond(&telebot.CallbackResponse{Text: "Ошибка обновления статуса"})
 	}
-
 	req.Status = newStatus
 
 	label := statusLabel(newStatus)
@@ -270,8 +269,8 @@ func statusLabel(s string) string {
 		tasks.StatusAssigned:           "назначен",
 		tasks.StatusDone:               "закрыто",
 		tasks.StatusRejected:           "отклонено",
-		tasks.StatusHermesResponded:    "ответ Krugosvet helper",
-		tasks.StatusHermesFailed:       "ошибка Krugosvet helper",
+		tasks.StatusHermesResponded:    "Krugosvet Helper",
+		tasks.StatusHermesFailed:       "ошибка Krugosvet Helper",
 	}
 	if l, ok := labels[s]; ok {
 		return l
@@ -385,5 +384,5 @@ func getAuditLog(pbURL, token, contractID string) ([]map[string]interface{}, err
 }
 
 func generateID() string {
-	return fmt.Sprintf("KRUG-%d", time.Now().UnixNano()%100000)
+	return fmt.Sprintf("KRUGOSVET-%05d", time.Now().UnixNano()%100000)
 }
