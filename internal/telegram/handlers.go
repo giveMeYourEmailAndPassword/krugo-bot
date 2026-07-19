@@ -28,19 +28,15 @@ type Store interface {
 }
 // Bot orchestrates the Telegram side of Hermes.
 type Bot struct {
-	tele             *telebot.Bot
-	store            Store
-	hermesClient     *hermes.BridgeClient
-	log              *slog.Logger
-	allowedUsers     map[int64]bool
-	processedMsgs    map[int]bool
+	tele         *telebot.Bot
+	store        Store
+	hermesClient *hermes.BridgeClient
+	log          *slog.Logger
+	allowedUsers map[int64]bool
 }
 
 func NewBot(tele *telebot.Bot, store Store, hermesClient *hermes.BridgeClient, log *slog.Logger, allowedIDs []int64) *Bot {
-	b := &Bot{
-		tele: tele, store: store, hermesClient: hermesClient, log: log,
-		allowedUsers: make(map[int64]bool), processedMsgs: make(map[int]bool),
-	}
+	b := &Bot{tele: tele, store: store, hermesClient: hermesClient, log: log, allowedUsers: make(map[int64]bool)}
 	for _, id := range allowedIDs {
 		b.allowedUsers[id] = true
 	}
@@ -72,12 +68,6 @@ func (b *Bot) handleText(c telebot.Context) error {
 	text := c.Text()
 	sender := c.Sender()
 
-	// Dedup by Telegram message ID (after allowlist + detection)
-	msgID := c.Message().ID
-	if b.processedMsgs[msgID] {
-		return nil
-	}
-	b.processedMsgs[msgID] = true
 
 	if !b.allowedUsers[sender.ID] {
 		return nil

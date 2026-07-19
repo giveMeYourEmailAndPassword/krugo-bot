@@ -66,6 +66,7 @@ func (s *SQLiteStore) migrate() error {
 		recommendation TEXT,
 		next_action TEXT,
 		created_at DATETIME NOT NULL,
+		UNIQUE(telegram_chat_id, telegram_message_id)
 		updated_at DATETIME NOT NULL
 	);
 	`
