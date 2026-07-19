@@ -83,6 +83,11 @@ func (b *Bot) handleText(c telebot.Context) error {
 		return nil
 	}
 
+	// Reject if template placeholders left unfilled
+	if strings.Contains(text, "точное имя") || strings.Contains(text, "старый → новый") {
+		return c.Reply("⚠️ Заполните все поля в шаблоне. Удалите строки, которые не меняются.")
+	}
+
 	chat := c.Chat()
 
 	req := &tasks.Request{
