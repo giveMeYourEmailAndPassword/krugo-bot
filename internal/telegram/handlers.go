@@ -112,7 +112,7 @@ func (b *Bot) handleText(c telebot.Context) error {
 	}
 
 	ack := fmt.Sprintf(
-		"Принял заявку в работу.\n\nID: %s\nСтатус: анализирую",
+		"Принял заявку в работу.\n\nID: %s\nСтатус: анализирую\n⏳ Ожидайте ответ Krugosvet Helper...",
 		req.ID,
 	)
 	if err := c.Reply(ack); err != nil {
