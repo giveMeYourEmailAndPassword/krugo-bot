@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"os"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -83,9 +84,16 @@ func (b *Bot) handleText(c telebot.Context) error {
 		return nil
 	}
 
-	// Reject if template placeholders left unfilled
-	if strings.Contains(text, "точное имя") || strings.Contains(text, "старый → новый") {
-		return c.Reply("⚠️ Заполните все поля в шаблоне. Удалите строки, которые не меняются.")
+	// Reject unfilled template + missing contract ID
+	placeholders := []string{"точное имя", "старый → новый", "старая → новая", "старое → новое"}
+	for _, p := range placeholders {
+		if strings.Contains(text, p) {
+			return c.Reply("⚠️ Заполните или удалите незаполненные строки шаблона.")
+		}
+	}
+	re := regexp.MustCompile(`baza\.krugo\.tours/contracts/([A-Za-z0-9_-]+)`)
+	if !re.MatchString(text) {
+		return c.Reply("⚠️ Укажите полную ссылку на договор с ID.")
 	}
 
 	chat := c.Chat()
