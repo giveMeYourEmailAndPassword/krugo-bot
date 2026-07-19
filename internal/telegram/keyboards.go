@@ -17,7 +17,7 @@ func mainKeyboard() *telebot.ReplyMarkup {
 func contractTemplate() string {
 	return `Заявка на изменение договора
 
-Договор: https://baza.krugo.tours/contracts/__________
+Договор: (ссылка на договор)
 
 Поставщик #1: текущий → новый
   Номер заявки: текущий → новый
@@ -25,5 +25,5 @@ func contractTemplate() string {
 Нетто: текущее → новое
 Брутто: текущее → новое
 
-Не указано выше = без изменений`
+Оставьте только поля, которые нужно изменить`
 }
