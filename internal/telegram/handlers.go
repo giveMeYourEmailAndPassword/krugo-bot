@@ -72,7 +72,7 @@ func (b *Bot) handleText(c telebot.Context) error {
 	text := c.Text()
 	sender := c.Sender()
 
-	// Dedup by Telegram message ID
+	// Dedup by Telegram message ID (after allowlist + detection)
 	msgID := c.Message().ID
 	if b.processedMsgs[msgID] {
 		return nil
