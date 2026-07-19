@@ -66,48 +66,41 @@ func (s *SQLiteStore) migrate() error {
 		recommendation TEXT,
 		next_action TEXT,
 		created_at DATETIME NOT NULL,
-		UNIQUE(telegram_chat_id, telegram_message_id)
 		updated_at DATETIME NOT NULL
 	);
 	`
 	_, err := s.db.Exec(query)
+	if err != nil {
+		return err
+	}
+	_, err = s.db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_requests_msg ON requests(telegram_chat_id, telegram_message_id)`)
 	return err
 }
 
 // Create inserts a new request.
-func (s *SQLiteStore) Create(r *tasks.Request) error {
+func (s *SQLiteStore) Create(r *tasks.Request) (bool, error) {
 	questionsJSON, _ := json.Marshal(r.ClarificationQuestions)
 
-	_, err := s.db.Exec(
+	result, err := s.db.Exec(
 		`INSERT INTO requests (
 			id, telegram_chat_id, telegram_message_id, author_id, author_username,
 			raw_text, client, project, request_type, description,
 			status, relevance, risk,
 			needs_clarification, clarification_questions, summary, recommendation, next_action,
 			created_at, updated_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		r.ID,
-		r.TelegramChatID,
-		r.TelegramMessageID,
-		r.AuthorID,
-		r.AuthorUsername,
-		r.RawText,
-		r.Client,
-		r.Project,
-		r.RequestType,
-		r.Description,
-		r.Status,
-		r.Relevance,
-		r.Risk,
-		r.NeedsClarification,
-		string(questionsJSON),
-		r.Summary,
-		r.Recommendation,
-		r.NextAction,
-		r.CreatedAt,
-		r.UpdatedAt,
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(telegram_chat_id, telegram_message_id) DO NOTHING`,
+		r.ID, r.TelegramChatID, r.TelegramMessageID, r.AuthorID, r.AuthorUsername,
+		r.RawText, r.Client, r.Project, r.RequestType, r.Description,
+		r.Status, r.Relevance, r.Risk,
+		r.NeedsClarification, string(questionsJSON), r.Summary, r.Recommendation, r.NextAction,
+		r.CreatedAt, r.UpdatedAt,
 	)
-	return err
+	if err != nil {
+		return false, err
+	}
+	n, _ := result.RowsAffected()
+	return n > 0, nil
 }
 
 // GetByID looks up a request.

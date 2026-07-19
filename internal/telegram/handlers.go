@@ -21,7 +21,7 @@ import (
 
 // Store is the subset of storage operations needed by telegram handlers.
 type Store interface {
-	Create(r *tasks.Request) error
+	Create(r *tasks.Request) (bool, error)
 	GetByID(id string) (*tasks.Request, error)
 	UpdateStatus(id, status string) error
 	UpdateAnalysis(id string, r *tasks.Request) error
@@ -103,8 +103,12 @@ func (b *Bot) handleText(c telebot.Context) error {
 		UpdatedAt:         time.Now(),
 	}
 
-	if err := b.store.Create(req); err != nil {
+	inserted, err := b.store.Create(req)
+	if err != nil {
 		return fmt.Errorf("create request: %w", err)
+	}
+	if !inserted {
+		return nil // duplicate message, already processed
 	}
 
 	ack := fmt.Sprintf(
