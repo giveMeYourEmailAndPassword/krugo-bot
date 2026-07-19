@@ -61,7 +61,7 @@ func (b *Bot) handleStart(c telebot.Context) error {
 		"/status KRUG-XXXX — статус заявки\n" +
 		"/history ID_ДОГОВОРА — история изменений договора\n\n" +
 		"Или просто отправьте заявку по шаблону."
-	return c.Send(msg)
+	return c.Send(msg, mainKeyboard())
 }
 // handleText processes incoming group text messages.
 func (b *Bot) handleText(c telebot.Context) error {
