@@ -58,7 +58,7 @@ func (b *Bot) handleStart(c telebot.Context) error {
 	msg := "Круго-Бот готов к работе.\n\n" +
 		"Команды:\n" +
 		"/start — это сообщение\n" +
-		"/status KRUG-XXXX — статус заявки\n" +
+		"/status KRUGOSVET-XXXXX — статус заявки\n" +
 		"/history ID_ДОГОВОРА — история изменений договора\n\n" +
 		"Или просто отправьте заявку по шаблону."
 	return c.Send(msg, mainKeyboard())
@@ -278,11 +278,11 @@ func statusLabel(s string) string {
 	return s
 }
 
-// handleStatus responds to /status KRUG-XXXX.
+// handleStatus responds to /status KRUGOSVET-XXXXX.
 func (b *Bot) handleStatus(c telebot.Context, text string) error {
 	parts := strings.Fields(text)
 	if len(parts) < 2 {
-		return c.Reply("Укажите ID заявки: /status KRUG-XXXX")
+		return c.Reply("Укажите ID заявки: /status KRUGOSVET-XXXXX")
 	}
 
 	reqID := strings.ToUpper(parts[1])
@@ -384,5 +384,5 @@ func getAuditLog(pbURL, token, contractID string) ([]map[string]interface{}, err
 }
 
 func generateID() string {
-	return fmt.Sprintf("KRUGOSVET-%05d", time.Now().UnixNano()%100000)
+	return fmt.Sprintf("KRUGOSVET-%d", time.Now().UnixNano()%100000)
 }
