@@ -85,7 +85,7 @@ func (b *Bot) handleText(c telebot.Context) error {
 	}
 
 	// Reject unfilled template + missing contract ID
-	placeholders := []string{"текущий → новый", "текущее → новое", "(ссылка на договор)"}
+	placeholders := []string{"(ссылка на договор)", "Был: текущий", "Название: НовыйПоставщик", "Номер заявки: новый"}
 	for _, p := range placeholders {
 		if strings.Contains(text, p) {
 			return c.Reply("⚠️ Заполните или удалите незаполненные строки шаблона.")
