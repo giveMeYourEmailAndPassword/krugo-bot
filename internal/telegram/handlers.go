@@ -9,7 +9,6 @@ import (
 	"log/slog"
 	"os"
 	"net/http"
-	"regexp"
 	"strings"
 	"time"
 
@@ -83,19 +82,12 @@ func (b *Bot) handleText(c telebot.Context) error {
 	if !rules.LooksLikeRequest(text) {
 		return nil
 	}
-
-	// Reject unfilled template + missing contract ID
-	placeholders := []string{"(ссылка на договор)", "Был: текущий", "Название: НовыйПоставщик", "Цена: значение", "текущий →", "текущее →", "текущая →"}
-	for _, p := range placeholders {
-		if strings.Contains(strings.ToLower(text), strings.ToLower(p)) {
-			return c.Reply("⚠️ Заполните или удалите незаполненные строки шаблона.")
+	// Template validation — only for contract requests
+	if strings.Contains(strings.ToLower(text), "договор") || strings.Contains(text, "baza.krugo.tours") {
+		if msg := validateTemplate(text); msg != "" {
+			return c.Reply("⚠️ " + msg)
 		}
 	}
-	re := regexp.MustCompile(`baza\.krugo\.tours/contracts/([A-Za-z0-9_-]+)`)
-	if !re.MatchString(text) {
-		return c.Reply("⚠️ Укажите полную ссылку на договор с ID.")
-	}
-
 	chat := c.Chat()
 
 	req := &tasks.Request{
