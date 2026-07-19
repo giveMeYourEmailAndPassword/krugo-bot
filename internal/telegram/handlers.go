@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"html"
 	"log/slog"
-	"net/http"
 	"os"
+	"net/http"
 	"strings"
 	"time"
 
@@ -294,10 +294,12 @@ func (b *Bot) handleStatus(c telebot.Context, text string) error {
 func (b *Bot) handleTemplate(c telebot.Context, data string) error {
 	switch data {
 	case "tpl:contract_change":
+		c.Respond(&telebot.CallbackResponse{Text: "Шаблон отправлен"})
 		return c.Send(contractTemplate())
 	}
 	return c.Respond(&telebot.CallbackResponse{Text: "Шаблон не найден"})
 }
+
 
 // handleHistory responds to /history <contract_id>.
 func (b *Bot) handleHistory(c telebot.Context, text string) error {
@@ -305,46 +307,40 @@ func (b *Bot) handleHistory(c telebot.Context, text string) error {
 	if len(parts) < 2 {
 		return c.Reply("Укажите ID договора: /history t85493bo3ky8ccs")
 	}
-
 	contractID := parts[1]
-
 	pbURL := os.Getenv("PB_URL")
 	pbUser := os.Getenv("PB_USER")
 	pbPass := os.Getenv("PB_PASS")
-
 	if pbURL == "" || pbUser == "" || pbPass == "" {
-		return c.Reply("PB_URL, PB_USER, PB_PASS не заданы в окружении")
+		return c.Reply("PB_URL, PB_USER, PB_PASS не заданы")
 	}
-
-	// Get token
 	token, err := getPBToken(pbURL, pbUser, pbPass)
 	if err != nil {
-		return c.Reply("Ошибка доступа к базе: " + err.Error())
+		return c.Reply("Ошибка доступа к базе")
 	}
-
-	// Get audit log
 	records, err := getAuditLog(pbURL, token, contractID)
-	if err != nil {
-		return c.Reply("Ошибка чтения аудита: " + err.Error())
+	if err != nil || len(records) == 0 {
+		return c.Reply("Нет записей для договора " + contractID)
 	}
-
-	if len(records) == 0 {
-		return c.Reply("Нет записей аудита для договора " + contractID)
-	}
-
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("История изменений договора %s:\n\n", contractID))
+	sb.WriteString(fmt.Sprintf("История %s:\n\n", contractID))
 	for _, r := range records {
-		created := r["created"].(string)[:19]
-		created = strings.Replace(created, "T", " ", 1)
-		action := r["action"].(string)
+		created := ""
+		if c, ok := r["created"].(string); ok && len(c) >= 19 {
+			created = strings.Replace(c[:19], "T", " ", 1)
+		}
+		action := ""
+		if a, ok := r["action"].(string); ok {
+			action = a
+		}
 		desc := ""
 		if d, ok := r["description"]; ok && d != nil {
-			desc = d.(string)
+			if ds, ok := d.(string); ok {
+				desc = ds
+			}
 		}
 		sb.WriteString(fmt.Sprintf("[%s] %s: %s\n", created, action, desc))
 	}
-
 	return c.Reply(sb.String())
 }
 
