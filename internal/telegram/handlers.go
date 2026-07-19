@@ -147,18 +147,15 @@ func (b *Bot) analyzeRequest(req *tasks.Request) {
 	b.sendStatus(req)
 }
 
-// cleanRecommendation strips price_split section and converts **text** to <b>text</b>.
 func cleanRecommendation(text string) string {
 	// Remove price split section
-	re := regexp.MustCompile(`(?is)(Price Split|price.split|price_split).*`)
+	re := regexp.MustCompile(`(?is)Price Split[^\n]*(\n[^\n]*)*`)
 	text = re.ReplaceAllString(text, "")
-
-	// Convert **text** to <b>text</b>
-	boldRe := regexp.MustCompile(`\*\*(.+?)\*\*`)
-	text = boldRe.ReplaceAllString(text, "<b>$1</b>")
-
+	re = regexp.MustCompile(`(?is)price.split[^\n]*(\n[^\n]*)*`)
+	text = re.ReplaceAllString(text, "")
 	return strings.TrimSpace(text)
 }
+
 func (b *Bot) sendStatus(req *tasks.Request) {
 	text := formatStatus(req)
 	markup := mainKeyboard()
@@ -196,6 +193,13 @@ func formatStatus(req *tasks.Request) string {
 		sb.WriteString(fmt.Sprintf("Риск: %s\n", html.EscapeString(req.Risk)))
 	}
 
+	if req.Recommendation != "" {
+		escaped := html.EscapeString(req.Recommendation)
+		boldRe := regexp.MustCompile(`\*\*(.+?)\*\*`)
+		escaped = boldRe.ReplaceAllString(escaped, "<b>$1</b>")
+		sb.WriteString(fmt.Sprintf("\n<b>Рекомендация:</b>\n%s\n", escaped))
+	}
+
 	if req.NeedsClarification {
 		sb.WriteString("\n<b>Нужны уточнения:</b> да\n")
 		for _, q := range req.ClarificationQuestions {
@@ -204,7 +208,7 @@ func formatStatus(req *tasks.Request) string {
 	}
 
 	if req.Recommendation != "" {
-		sb.WriteString(fmt.Sprintf("\n<b>Рекомендация:</b>\n%s\n", html.EscapeString(req.Recommendation)))
+		sb.WriteString(fmt.Sprintf("\n<b>Рекомендация:</b>\n%s\n", req.Recommendation))
 	}
 
 	return sb.String()
