@@ -5,7 +5,7 @@
 
 # pb_auth — авторизация, возвращает token через stdout.
 pb_auth() {
-  local resp status token
+  local resp token
   resp=$(curl -sS --fail-with-body -X POST "$PB_URL/api/collections/_superusers/auth-with-password" \
     -H "Content-Type: application/json" \
     -d "{\"identity\":\"$PB_USER\",\"password\":\"$PB_PASS\"}" 2>&1) || {
