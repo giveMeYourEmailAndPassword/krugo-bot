@@ -17,9 +17,16 @@ type Config struct {
 	DatabasePath  string
 	BotEnv        string
 	AllowedUsers  []int64
-}
 
-// Load reads configuration from environment variables.
+	// PocketBase superuser credentials (used by the commands executor).
+	PBURL  string
+	PBUser string
+	PBPass string
+
+	// BackendURL is the contracts-backend (Hono) base URL, used for
+	// /api/rates (exchange rate snapshot for client payments).
+	BackendURL string
+}
 func Load() (*Config, error) {
 	cfg := &Config{
 		TelegramToken: os.Getenv("TELEGRAM_BOT_TOKEN"),
@@ -28,6 +35,10 @@ func Load() (*Config, error) {
 		AIModel:       envOrDefault("AI_MODEL", "deepseek-v4-flash"),
 		DatabasePath:  envOrDefault("DATABASE_PATH", "/app/data/hermes.db"),
 		BotEnv:        envOrDefault("BOT_ENV", "development"),
+		PBURL:         envOrDefault("PB_URL", ""),
+		PBUser:        envOrDefault("PB_USER", ""),
+		PBPass:        envOrDefault("PB_PASS", ""),
+		BackendURL:    strings.TrimRight(envOrDefault("BACKEND_URL", ""), "/"),
 	}
 
 	if cfg.TelegramToken == "" {

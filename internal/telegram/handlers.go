@@ -20,6 +20,7 @@ import (
 	"github.com/amantur/krugo-bot/internal/tasks"
 )
 
+
 // Store is the subset of storage operations needed by telegram handlers.
 type Store interface {
 	Create(r *tasks.Request) (bool, error)
@@ -27,6 +28,8 @@ type Store interface {
 	UpdateStatus(id, status string) error
 	UpdateAnalysis(id string, r *tasks.Request) error
 }
+
+
 // Bot orchestrates the Telegram side of Hermes.
 type Bot struct {
 	tele         *telebot.Bot
@@ -69,7 +72,6 @@ func (b *Bot) handleText(c telebot.Context) error {
 	text := c.Text()
 	sender := c.Sender()
 
-
 	if !b.allowedUsers[sender.ID] {
 		return nil
 	}
@@ -90,8 +92,10 @@ func (b *Bot) handleText(c telebot.Context) error {
 			return c.Reply("⚠️ " + msg)
 		}
 	}
-	chat := c.Chat()
 
+	// Common dedup + request record. The SQLite (chat_id, message_id)
+	// unique index prevents duplicate processing on retry/update.
+	chat := c.Chat()
 	req := &tasks.Request{
 		ID:                generateID(),
 		TelegramChatID:    chat.ID,
@@ -112,6 +116,9 @@ func (b *Bot) handleText(c telebot.Context) error {
 		return nil // duplicate message, already processed
 	}
 
+	// Hermes relay: bot is a filter only — it validates the template,
+	// deduplicates, and forwards to Hermes Agent which parses the
+	// structured template and executes operations in PocketBase.
 	ack := fmt.Sprintf(
 		"Принял заявку в работу.\n\nID: %s\nСтатус: анализирую\n⏳ Ожидайте ответ Krugosvet Helper...",
 		req.ID,

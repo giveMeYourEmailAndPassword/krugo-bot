@@ -9,6 +9,7 @@ services:
       - PB_URL=${PB_URL:?required}
       - PB_USER=${PB_USER:?required}
       - PB_PASS=${PB_PASS:?required}
+      - BACKEND_URL=${BACKEND_URL:-}
     volumes:
       - hermes-data:/opt/data
       - ./hermes/skills/contracts/SKILL.md:/opt/data/skills/contracts/SKILL.md:ro

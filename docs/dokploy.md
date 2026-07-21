@@ -40,7 +40,14 @@ docker compose up -d
 |---|---|
 | `TELEGRAM_BOT_TOKEN` | Токен krugo-bot |
 | `OPENAI_API_KEY` | Ключ DeepSeek |
-| `TELEGRAM_ALLOWED_USERS` | Доступ к Hermes |
+| `TELEGRAM_ALLOWED_USERS` | Telegram ID через запятую (доступ) |
+| `HERMES_BRIDGE_KEY` | Bearer auth для hermes-proxy |
+| `PB_URL` | PocketBase URL (striking-wisdom-production.up.railway.app) |
+| `PB_USER` | PB superuser email |
+| `PB_PASS` | PB superuser пароль |
+| `BACKEND_URL` | contracts-backend (Hono) — **НЕ baza.krugo.tours** (там SPA). Рабочий: `https://contracts-backend-production-f1a9.up.railway.app` |
+
+⚠️ `BACKEND_URL` должен указывать на Hono backend, не на фронтенд. `/rates` на фронтенде вернёт HTML, и USD/EUR платежи упадут на JSON decode.
 
 ## Порядок
 
