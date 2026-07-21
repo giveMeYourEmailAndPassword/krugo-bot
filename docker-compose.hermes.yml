@@ -1,7 +1,22 @@
 services:
+  skills-init:
+    build:
+      context: .
+      dockerfile: Dockerfile.hermes
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["mkdir -p $$HERMES_HOME/skills && cp -ru /opt/skills/contracts/. $$HERMES_HOME/skills/contracts/ && chmod +x $$HERMES_HOME/skills/contracts/tools/*.sh && echo 'skills synced'"]
+    environment:
+      - HERMES_HOME=/opt/data
+    volumes:
+      - hermes-data:/opt/data
+    restart: "no"
+
   hermes:
     image: nousresearch/hermes-agent:latest
     command: ["sleep", "infinity"]
+    depends_on:
+      skills-init:
+        condition: service_completed_successfully
     environment:
       - HERMES_HOME=/opt/data
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
@@ -12,13 +27,15 @@ services:
       - BACKEND_URL=${BACKEND_URL:-}
     volumes:
       - hermes-data:/opt/data
-      - ./hermes/skills/contracts:/opt/data/skills/contracts:ro
     restart: unless-stopped
 
   hermes-proxy:
     build:
       context: .
       dockerfile: Dockerfile.hermes
+    depends_on:
+      skills-init:
+        condition: service_completed_successfully
     environment:
       - HERMES_HOME=/opt/data
       - HERMES_BRIDGE_KEY=${HERMES_BRIDGE_KEY}
@@ -28,7 +45,6 @@ services:
       - HERMES_TIMEOUT=${HERMES_TIMEOUT:-3m}
     volumes:
       - hermes-data:/opt/data
-      - ./hermes/skills/contracts:/opt/data/skills/contracts:ro
     restart: unless-stopped
     network_mode: host
 volumes:

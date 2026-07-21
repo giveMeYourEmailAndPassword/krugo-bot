@@ -9,4 +9,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /hermes-proxy .
 FROM nousresearch/hermes-agent:latest
 COPY --from=builder /hermes-proxy /opt/hermes/bin/hermes-proxy
 RUN chmod +x /opt/hermes/bin/hermes-proxy
+# Copy skills into image — bind mount is unreliable on Dokploy.
+COPY hermes/skills/contracts /opt/skills/contracts
+RUN chmod +x /opt/skills/contracts/tools/*.sh
+# Entrypoint: proxy only — skills synced by skills-init service.
 ENTRYPOINT ["/opt/hermes/bin/hermes-proxy"]
