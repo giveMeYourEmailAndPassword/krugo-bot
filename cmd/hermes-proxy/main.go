@@ -142,6 +142,37 @@ func main() {
 		writeJSON(w, http.StatusOK, response{Text: stdoutBuf.String(), Status: 200})
 	})
 
+
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		toolsDir := os.Getenv("HERMES_HOME") + "/skills/contracts/tools"
+		requiredScripts := []string{
+			"pb_helper.sh", "add_supplier.sh", "cancel_supplier.sh",
+			"change_supplier.sh", "create_correction.sh",
+			"create_finance_request.sh", "create_operator_request.sh",
+			"create_payment.sh", "create_refund.sh",
+		}
+		missing := []string{}
+		for _, s := range requiredScripts {
+			if _, err := os.Stat(toolsDir + "/" + s); err != nil {
+				missing = append(missing, s)
+			}
+		}
+		if len(missing) > 0 {
+			writeJSON(w, http.StatusServiceUnavailable, map[string]interface{}{
+				"status":  "unhealthy",
+				"error":   "tools not mounted",
+				"missing": missing,
+				"path":    toolsDir,
+			})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]interface{}{
+			"status":  "healthy",
+			"tools":   len(requiredScripts),
+			"path":    toolsDir,
+		})
+	})
+
 	srv := &http.Server{
 		Addr:         "127.0.0.1:8080",
 		Handler:      mux,
