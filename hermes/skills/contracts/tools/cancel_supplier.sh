@@ -32,6 +32,7 @@ if [ -f "$JOURNAL_FILE" ]; then
     echo "ERROR: idempotent retry — запись $PRIOR_ID не найдена" >&2; exit 1; }
   V_STATUS=$(echo "$VERIFY" | jq -r '.status')
   [ "$V_STATUS" != "pending" ] && { echo "ERROR: idempotent retry — статус=$V_STATUS" >&2; exit 1; }
+tool_trace "cancel_supplier" "$OPERATION_ID" "$PRIOR_ID"
   echo "OK (idempotent): отмена $PRIOR_ID уже создана (pending)"
   exit 0
 fi
@@ -77,4 +78,5 @@ V_STATUS=$(echo "$VERIFY" | jq -r '.status')
 
 pb_audit "$TOKEN" "$CONTRACT_ID" "cancel_supplier" \
   "Отмена поставщика $PROVIDER_NAME ($CUR_AMOUNT $CUR_CURRENCY)"
+tool_trace "cancel_supplier" "$OPERATION_ID" "$CORR_ID"
 echo "OK: отмена $CORR_ID создана (pending, $PROVIDER_NAME)"

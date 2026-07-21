@@ -59,6 +59,7 @@ if [ -f "$JOURNAL_FILE" ]; then
       echo "ERROR: idempotent retry — не удалось перевести договор в pending" >&2; exit 1; }
   fi
 
+tool_trace "create_finance_request" "$OPERATION_ID" "$PRIOR_ID"
   echo "OK (idempotent): фин-запрос $PRIOR_ID уже создан (pending, договор в pending)"
   exit 0
 fi
@@ -120,4 +121,5 @@ pb_update "$TOKEN" "contracts" "$CONTRACT_ID" '{"finance_status":"pending"}' > /
 
 pb_audit "$TOKEN" "$CONTRACT_ID" "create_finance_request" \
   "$FIELD: $OLD_VALUE → $NEW_VALUE $CURRENCY"
+tool_trace "create_finance_request" "$OPERATION_ID" "$FCR_ID"
 echo "OK: фин-запрос $FCR_ID создан (pending, $FIELD: $OLD_VALUE → $NEW_VALUE, договор в pending)"

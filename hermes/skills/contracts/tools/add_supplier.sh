@@ -45,6 +45,7 @@ if [ -f "$JOURNAL_FILE" ]; then
     echo "ERROR: idempotent retry — запись $PRIOR_ID не найдена" >&2; exit 1; }
   V_DELETED=$(echo "$VERIFY" | jq -r '.is_deleted')
   [ "$V_DELETED" = "true" ] && { echo "ERROR: idempotent retry — заявка удалена" >&2; exit 1; }
+tool_trace "add_supplier" "$OPERATION_ID" "$PRIOR_ID"
   echo "OK (idempotent): поставщик $PRIOR_ID уже добавлен"
   exit 0
 fi
@@ -54,6 +55,15 @@ pb_check_contract "$TOKEN" "$CONTRACT_ID" > /dev/null || exit 1
 
 # Resolve provider
 PROVIDER_ID=$(pb_resolve_provider "$TOKEN" "$PROVIDER_NAME") || exit 1
+
+# Business dedup: check if application with same contract_id + provider_id + number already exists
+EXISTING=$(pb_list "$TOKEN" "applications" \
+  "contract_id=\"$CONTRACT_ID\" && provider_id=\"$PROVIDER_ID\" && number=\"$APP_NUMBER\" && is_deleted!=true" 5) || true
+EXISTING_COUNT=$(echo "$EXISTING" | jq -r '.totalItems // 0')
+if [ "$EXISTING_COUNT" -gt 0 ]; then
+  EXISTING_ID=$(echo "$EXISTING" | jq -r '.items[0].id')
+  echo "ERROR: заявка поставщика $PROVIDER_NAME ($APP_NUMBER) уже существует: $EXISTING_ID" >&2; exit 1
+fi
 
 # Create application
 PAYLOAD=$(jq -n \
@@ -85,4 +95,5 @@ fi
 
 pb_audit "$TOKEN" "$CONTRACT_ID" "add_supplier" \
   "Добавлен поставщик $PROVIDER_NAME ($AMOUNT $CURRENCY, заявка $APP_NUMBER)"
+tool_trace "add_supplier" "$OPERATION_ID" "$APP_ID"
 echo "OK: поставщик $APP_ID добавлен ($PROVIDER_NAME, $AMOUNT $CURRENCY, заявка $APP_NUMBER)"

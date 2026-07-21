@@ -67,6 +67,7 @@ if [ -f "$JOURNAL_FILE" ]; then
   [ -z "$V_OFFICE" ] || [ "$V_OFFICE" = "null" ] && { echo "ERROR: idempotent retry — office_id пустой" >&2; exit 1; }
   [ -z "$V_METHOD" ] || [ "$V_METHOD" = "null" ] && { echo "ERROR: idempotent retry — payment_method_id пустой" >&2; exit 1; }
   [ -z "$V_RATE" ] || [ "$V_RATE" = "null" ] || [ "$V_RATE" = "0" ] && { echo "ERROR: idempotent retry — exchange_rate_kgs=$V_RATE" >&2; exit 1; }
+tool_trace "create_payment" "$OPERATION_ID" "$PRIOR_ID"
   echo "OK (idempotent): платёж $PRIOR_ID уже создан (pending, rate=$V_RATE, office=$V_OFFICE)"
   exit 0
 fi
@@ -131,4 +132,5 @@ V_RATE=$(echo "$VERIFY" | jq -r '.exchange_rate_kgs')
 pb_audit "$TOKEN" "$CONTRACT_ID" "create_payment" \
   "Платёж $AMOUNT $CURRENCY (rate=$RATE_KGS, method=$METHOD_NAME)"
 
+tool_trace "create_payment" "$OPERATION_ID" "$PAYMENT_ID"
 echo "OK: платёж $PAYMENT_ID создан (pending, $AMOUNT $CURRENCY, rate=$RATE_KGS, office=$OFFICE_ID)"

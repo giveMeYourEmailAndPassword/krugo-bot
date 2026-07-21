@@ -41,12 +41,14 @@ if [ -f "$JOURNAL_FILE" ]; then
   if [ -n "$VERIFY" ] && [ "$(echo "$VERIFY" | jq -r '.id // empty')" != "" ]; then
     V_STATUS=$(echo "$VERIFY" | jq -r '.status')
     [ "$V_STATUS" != "pending" ] && { echo "ERROR: idempotent retry — статус=$V_STATUS" >&2; exit 1; }
+    tool_trace "change_supplier" "$OPERATION_ID" "$PRIOR_ID"
     echo "OK (idempotent): корректировка поставщика $PRIOR_ID уже создана (pending)"
     exit 0
   fi
   # Otherwise it was a direct PATCH — verify application
   VERIFY=$(pb_get "$TOKEN" "applications" "$PRIOR_ID") || {
     echo "ERROR: idempotent retry — запись $PRIOR_ID не найдена" >&2; exit 1; }
+  tool_trace "change_supplier" "$OPERATION_ID" "$PRIOR_ID"
   echo "OK (idempotent): поставщик изменён ($PRIOR_ID)"
   exit 0
 fi
@@ -138,6 +140,7 @@ if [ "$IS_APPROVED" = "true" ]; then
 
   pb_audit "$TOKEN" "$CONTRACT_ID" "change_supplier" \
     "Поставщик: $OLD_PROVIDER → ${NEW_PROVIDER:-$OLD_PROVIDER} (correction pending)"
+  tool_trace "change_supplier" "$OPERATION_ID" "$CORR_ID"
   echo "OK: корректировка $CORR_ID создана (pending, $OLD_PROVIDER${NEW_PROVIDER:+ → $NEW_PROVIDER})"
 
 else
@@ -176,5 +179,6 @@ else
 
   pb_audit "$TOKEN" "$CONTRACT_ID" "change_supplier" \
     "Поставщик: $OLD_PROVIDER → ${NEW_PROVIDER:-$OLD_PROVIDER}"
+  tool_trace "change_supplier" "$OPERATION_ID" "$PATCHED_ID"
   echo "OK: поставщик изменён напрямую ($OLD_PROVIDER${NEW_PROVIDER:+ → $NEW_PROVIDER})"
 fi

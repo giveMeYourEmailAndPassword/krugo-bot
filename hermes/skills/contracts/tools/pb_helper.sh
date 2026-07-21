@@ -234,3 +234,13 @@ pb_find_application() {
   fi
   echo "$resp" | jq '.items[0]'
 }
+
+# tool_trace — diagnostic telemetry only. Emitted after mutation/verify/audit,
+# so neither presence nor absence proves tool execution (crash before trace
+# = tool ran but no trace; stderr can be dropped). Do NOT use as enforcement
+# evidence — for that, use a proxy-issued signed receipt (TODO).
+# Format: TOOL_TRACE tool_name operation_id result_id
+tool_trace() {
+  local tool="$1" op_id="$2" rid="${3:-}"
+  echo "TOOL_TRACE $tool $op_id $rid" >&2
+}
