@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 # create_operator_request.sh — создаёт pending запрос на оплату поставщику.
-# JSON через stdin: {"contract_id":"...", "provider":"ANEX", "number":"111222",
-#                    "amount":4500, "currency":"USD", "type":"полный остаток"}
+# JSON: {"operation_id":"chat:msg:operator:1", "contract_id":"...",
+#        "provider":"ANEX", "number":"111222", "amount":4500,
+#        "currency":"USD", "type":"полный остаток", "comment":"..."}
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/pb_helper.sh"
 
 INPUT=$(cat)
+OPERATION_ID=$(echo "$INPUT" | jq -r '.operation_id // empty')
+[ -z "$OPERATION_ID" ] && { echo "ERROR: operation_id не указан" >&2; exit 1; }
+
 CONTRACT_ID=$(echo "$INPUT" | jq -r '.contract_id // empty')
 PROVIDER_NAME=$(echo "$INPUT" | jq -r '.provider // empty')
 APP_NUMBER=$(echo "$INPUT" | jq -r '.number // empty')
@@ -21,15 +25,31 @@ COMMENT=$(echo "$INPUT" | jq -r '.comment // "Оплата поставщику"
 [ -z "$CURRENCY" ] && { echo "ERROR: currency" >&2; exit 1; }
 
 CURRENCY=$(echo "$CURRENCY" | tr '[:lower:]' '[:upper:]')
-
-# Map type text
 REQUEST_TYPE="full_remaining"
 IS_PREPAYMENT="false"
 case "$(echo "$TYPE_TEXT" | tr '[:upper:]' '[:lower:]')" in
   *аванс*) REQUEST_TYPE="advance"; IS_PREPAYMENT="true" ;;
 esac
 
+# ── Idempotency: single flock ──
+JOURNAL_FILE=$(journal_path "$OPERATION_ID")
+exec 200>"$JOURNAL_FILE.lock"
+flock -x 200
+
 TOKEN=$(pb_auth) || exit 1
+
+# Idempotent branch: journal exists → GET + verify
+if [ -f "$JOURNAL_FILE" ]; then
+  PRIOR_ID=$(cat "$JOURNAL_FILE")
+  VERIFY=$(pb_get "$TOKEN" "operator_payment_requests" "$PRIOR_ID") || {
+    echo "ERROR: idempotent retry — запись $PRIOR_ID не найдена" >&2; exit 1; }
+  V_STATUS=$(echo "$VERIFY" | jq -r '.status')
+  [ "$V_STATUS" != "pending" ] && { echo "ERROR: idempotent retry — статус=$V_STATUS" >&2; exit 1; }
+  echo "OK (idempotent): запрос на оплату $PRIOR_ID уже создан (pending)"
+  exit 0
+fi
+
+# Fresh branch
 pb_check_contract "$TOKEN" "$CONTRACT_ID" > /dev/null || exit 1
 
 # Find application
@@ -62,6 +82,9 @@ PAYLOAD=$(jq -n \
 RESULT=$(pb_create "$TOKEN" "operator_payment_requests" "$PAYLOAD") || exit 1
 REQ_ID=$(echo "$RESULT" | jq -r '.id // empty')
 [ -z "$REQ_ID" ] && { echo "ERROR: PB не вернул id" >&2; exit 1; }
+
+# Atomic save immediately after POST
+journal_save_atomic "$JOURNAL_FILE" "$REQ_ID"
 
 # GET-verify
 VERIFY=$(pb_get "$TOKEN" "operator_payment_requests" "$REQ_ID") || exit 1
