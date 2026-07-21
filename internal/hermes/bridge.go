@@ -41,22 +41,29 @@ type bridgeResponse struct {
 }
 
 // Analyze sends the request to Hermes Agent and returns the raw response text.
+// operationPrefix is the Telegram chat_id:message_id — a guaranteed-unique
+// dedup key (the SQLite unique index). It is injected into the prompt so
+// Hermes uses it as the operation_id prefix for idempotent tool calls
+// (e.g. "12345:67890:payment:1"). This survives retries of the same
+// Telegram message and never collides with a different message.
 // Returns (text, nil) on success, ("", error) on failure.
-func (b *BridgeClient) Analyze(ctx context.Context, rawText string) (string, error) {
+func (b *BridgeClient) Analyze(ctx context.Context, operationPrefix, rawText string) (string, error) {
 	if b.apiKey == "" {
 		return "", fmt.Errorf("HERMES_BRIDGE_KEY is not set")
 	}
 
 	prompt := fmt.Sprintf(
-		"Ты Hermes Agent. Выполни задачу из заявки менеджера, используя инструменты:\n\n%s\n\n"+
-			"Порядок действий:\n"+
-			"1. Если в заявке есть ссылка на договор — сделай GET этого договора через PB API (смотри skill contracts)\n"+
-			"2. Покажи текущие данные договора\n"+
-			"3. Выполни изменения согласно заявке\n"+
-			"4. Покажи что изменилось — сделай повторный GET\n"+
-			"5. Не спрашивай про клиента/проект/срочность/дедлайн — эти поля не нужны\n"+
-			"6. Не классифицируй заявку — выполняй её",
-		rawText,
+		"Ты Hermes Agent. Выполни задачу из заявки менеджера, используя инструменты (скрипты в skills/contracts/tools/):\n\n%s\n\n"+
+		"ID этой заявки (operation_id prefix): %s\n"+
+		"ВАЖНО: каждый вызов инструмента ДОЛЖЕН включать operation_id вида \"%s:<секция>:<индекс>\" (например \"%s:payment:1\").\n"+
+		"Это обеспечивает идемпотентность при повторных попытках.\n\n"+
+		"Порядок действий:\n"+
+		"1. Сделай GET договора — проверь статусы (is_cancelled, is_deleted, is_rejected, finance_status)\n"+
+		"2. Для каждой секции заявки вызови соответствующий скрипт-инструмент\n"+
+		"3. Покажи результат по каждой секции\n"+
+		"4. Не спрашивай про клиента/проект/срочность/дедлайн — эти поля не нужны\n"+
+		"5. Не классифицируй заявку — выполняй её",
+		rawText, operationPrefix, operationPrefix, operationPrefix,
 	)
 
 	reqBody := bridgeRequest{Prompt: prompt}

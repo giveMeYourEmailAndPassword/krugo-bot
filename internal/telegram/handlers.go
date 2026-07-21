@@ -138,7 +138,8 @@ func (b *Bot) analyzeRequest(req *tasks.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer cancel()
 
-	result, err := b.hermesClient.Analyze(ctx, req.RawText)
+	operationPrefix := fmt.Sprintf("%d:%d", req.TelegramChatID, req.TelegramMessageID)
+	result, err := b.hermesClient.Analyze(ctx, operationPrefix, req.RawText)
 	if err != nil {
 		b.log.Error("analysis failed", "request_id", req.ID, "error", err)
 		req.Status = tasks.StatusHermesFailed
