@@ -13,3 +13,4 @@ krugo-bot
 # Log files (may contain chat content)
 *.log
 krugo-bot.log
+/hermes-proxy

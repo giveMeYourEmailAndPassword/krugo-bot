@@ -25,6 +25,7 @@ services:
       - PB_URL=${PB_URL:?required}
       - PB_USER=${PB_USER:?required}
       - PB_PASS=${PB_PASS:?required}
+      - HERMES_TIMEOUT=${HERMES_TIMEOUT:-3m}
     volumes:
       - hermes-data:/opt/data
       - ./hermes/skills/contracts:/opt/data/skills/contracts:ro
