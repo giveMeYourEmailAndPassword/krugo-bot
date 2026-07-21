@@ -26,6 +26,31 @@ type response struct {
 
 var mu sync.Mutex
 
+var requiredScripts = []string{
+	"pb_helper.sh", "add_supplier.sh", "cancel_supplier.sh",
+	"change_supplier.sh", "create_correction.sh",
+	"create_finance_request.sh", "create_operator_request.sh",
+	"create_payment.sh", "create_refund.sh",
+}
+
+// validateTools checks that all required scripts exist and are executable.
+// Returns nil if all OK, or a slice of problem descriptions.
+func validateTools(toolsDir string) []string {
+	var problems []string
+	for _, s := range requiredScripts {
+		path := toolsDir + "/" + s
+		info, err := os.Stat(path)
+		if err != nil {
+			problems = append(problems, s+" missing")
+			continue
+		}
+		if info.Mode()&0o111 == 0 && s != "pb_helper.sh" {
+			problems = append(problems, s+" not executable")
+		}
+	}
+	return problems
+}
+
 func main() {
 	apiKey := os.Getenv("HERMES_BRIDGE_KEY")
 	if apiKey == "" {
@@ -44,7 +69,27 @@ func main() {
 	}
 	log.Printf("hermes timeout: %v", hermesTimeout)
 
+	toolsDir := os.Getenv("HERMES_HOME") + "/skills/contracts/tools"
+
 	mux := http.NewServeMux()
+
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		problems := validateTools(toolsDir)
+		if len(problems) > 0 {
+			writeJSON(w, http.StatusServiceUnavailable, map[string]interface{}{
+				"status":   "unhealthy",
+				"problems": problems,
+				"path":     toolsDir,
+			})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]interface{}{
+			"status": "healthy",
+			"tools":  len(requiredScripts),
+			"path":   toolsDir,
+		})
+	})
+
 	mux.HandleFunc("/api/oneshot", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "POST only", http.StatusMethodNotAllowed)
@@ -71,32 +116,14 @@ func main() {
 
 		// Preflight: verify all required tool scripts are mounted and executable.
 		// Fail fast — prevents long timeout when tools/ is empty or partial.
-		toolsDir := os.Getenv("HERMES_HOME") + "/skills/contracts/tools"
-		requiredScripts := []string{
-			"pb_helper.sh", "add_supplier.sh", "cancel_supplier.sh",
-			"change_supplier.sh", "create_correction.sh",
-			"create_finance_request.sh", "create_operator_request.sh",
-			"create_payment.sh", "create_refund.sh",
-		}
-		for _, s := range requiredScripts {
-			path := toolsDir + "/" + s
-			info, err := os.Stat(path)
-			if err != nil {
-				log.Printf("preflight FAIL: %s missing at %s", s, toolsDir)
-				writeJSON(w, http.StatusInternalServerError, response{
-					Error:  "ОШИБКА: инструменты не смонтированы (" + s + " отсутствует). Нужен redeploy контейнера.",
-					Status: 500,
-				})
-				return
-			}
-			if info.Mode()&0o111 == 0 && s != "pb_helper.sh" {
-				log.Printf("preflight FAIL: %s not executable", s)
-				writeJSON(w, http.StatusInternalServerError, response{
-					Error:  "ОШИБКА: скрипт " + s + " не executable. Проверьте права mount.",
-					Status: 500,
-				})
-				return
-			}
+		problems := validateTools(toolsDir)
+		if len(problems) > 0 {
+			log.Printf("preflight FAIL: %v at %s", problems, toolsDir)
+			writeJSON(w, http.StatusInternalServerError, response{
+				Error:  "ОШИБКА: инструменты не смонтированы. Нужен redeploy контейнера.",
+				Status: 500,
+			})
+			return
 		}
 		log.Printf("preflight OK: %d scripts verified at %s", len(requiredScripts), toolsDir)
 
@@ -140,37 +167,6 @@ func main() {
 
 		log.Printf("response: %d bytes", stdoutBuf.Len())
 		writeJSON(w, http.StatusOK, response{Text: stdoutBuf.String(), Status: 200})
-	})
-
-
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		toolsDir := os.Getenv("HERMES_HOME") + "/skills/contracts/tools"
-		requiredScripts := []string{
-			"pb_helper.sh", "add_supplier.sh", "cancel_supplier.sh",
-			"change_supplier.sh", "create_correction.sh",
-			"create_finance_request.sh", "create_operator_request.sh",
-			"create_payment.sh", "create_refund.sh",
-		}
-		missing := []string{}
-		for _, s := range requiredScripts {
-			if _, err := os.Stat(toolsDir + "/" + s); err != nil {
-				missing = append(missing, s)
-			}
-		}
-		if len(missing) > 0 {
-			writeJSON(w, http.StatusServiceUnavailable, map[string]interface{}{
-				"status":  "unhealthy",
-				"error":   "tools not mounted",
-				"missing": missing,
-				"path":    toolsDir,
-			})
-			return
-		}
-		writeJSON(w, http.StatusOK, map[string]interface{}{
-			"status":  "healthy",
-			"tools":   len(requiredScripts),
-			"path":    toolsDir,
-		})
 	})
 
 	srv := &http.Server{
