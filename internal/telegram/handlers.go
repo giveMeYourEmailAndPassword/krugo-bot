@@ -215,10 +215,6 @@ func formatStatus(req *tasks.Request) string {
 		}
 	}
 
-	if req.Recommendation != "" {
-		sb.WriteString(fmt.Sprintf("\n<b>Рекомендация:</b>\n%s\n", req.Recommendation))
-	}
-
 	return sb.String()
 }
 
