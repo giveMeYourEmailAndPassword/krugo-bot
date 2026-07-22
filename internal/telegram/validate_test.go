@@ -9,22 +9,8 @@ func TestValidateTemplate(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "unfilled template — reject",
-			text: `Заявка на изменение договора
-
-Договор: (ссылка на договор)
-
-Поставщик #1: изменить
-  Был: текущий
-  Стал: новый
-  Номер заявки был: текущий
-  Номер заявки стал: новый
-  Цена: текущая → новая
-
-Поставщик #2: добавить
-  Название: НовыйПоставщик
-  Номер заявки: новый
-  Цена: значение`,
+			name:    "untouched button template — reject",
+			text:    contractTemplate(),
 			wantErr: true,
 		},
 		{
@@ -58,13 +44,13 @@ func TestValidateTemplate(t *testing.T) {
 Договор: https://baza.krugo.tours/contracts/t85493bo3ky8ccs
 
 Поставщик #2: добавить
-  Название: НовыйПоставщик
+  Название: <НАЗВАНИЕ>
   Номер заявки: 222222
-  Цена: 45`,
+  Сумма: 45`,
 			wantErr: true,
 		},
 		{
-			name: "price left as placeholder — reject",
+			name: "sum left as placeholder — reject",
 			text: `Заявка на изменение договора
 
 Договор: https://baza.krugo.tours/contracts/t85493bo3ky8ccs
@@ -72,7 +58,33 @@ func TestValidateTemplate(t *testing.T) {
 Поставщик #2: добавить
   Название: KOMPAS
   Номер заявки: 222222
-  Цена: значение`,
+  Сумма: <СУММА>`,
+			wantErr: true,
+		},
+		{
+			name: "currency left as placeholder — reject",
+			text: `Заявка на изменение договора
+
+Договор: https://baza.krugo.tours/contracts/t85493bo3ky8ccs
+
+Платёж клиента:
+  Сумма: 50000
+  Валюта: <VAL>
+  Способ: наличные
+  Дата: 2026-07-21`,
+			wantErr: true,
+		},
+		{
+			name: "date left as placeholder — reject",
+			text: `Заявка на изменение договора
+
+Договор: https://baza.krugo.tours/contracts/t85493bo3ky8ccs
+
+Платёж клиента:
+  Сумма: 50000
+  Валюта: KGS
+  Способ: наличные
+  Дата: <ГГГГ-ММ-ДД>`,
 			wantErr: true,
 		},
 		{
@@ -81,7 +93,23 @@ func TestValidateTemplate(t *testing.T) {
 
 Договор: https://baza.krugo.tours/contracts/t85493bo3ky8ccs
 
-Нетто договора: 80 → 95`,
+Нетто договора: 80 → 95
+Валюта: USD
+Причина: доплата`,
+			wantErr: false,
+		},
+		{
+			name: "valid payment — accept",
+			text: `Заявка на изменение договора
+
+Договор: https://baza.krugo.tours/contracts/t85493bo3ky8ccs
+
+Платёж клиента:
+  Сумма: 50000
+  Валюта: KGS
+  Способ: наличные
+  Дата: 2026-07-21
+  Комментарий: аванс`,
 			wantErr: false,
 		},
 		{
@@ -95,12 +123,48 @@ func TestValidateTemplate(t *testing.T) {
   Стал: JoinUP
   Номер заявки был: 123
   Номер заявки стал: 777
-  Цена: текущая → 800
+  Сумма: 500 → 800
 
 Поставщик #2: добавить
   Название: Великолепный Век
   Номер заявки: 90900
-  Цена: 700`,
+  Сумма: 700`,
+			wantErr: false,
+		},
+		{
+			name: "actual netto change — accept",
+			text: `Заявка на изменение договора
+
+Договор: https://baza.krugo.tours/contracts/t85493bo3ky8ccs
+
+Фактическое нетто: 75 → 90
+Валюта: USD
+Причина: перерасчёт`,
+			wantErr: false,
+		},
+		{
+			name: "reason left as placeholder — reject",
+			text: `Заявка на изменение договора
+
+Договор: https://baza.krugo.tours/contracts/t85493bo3ky8ccs
+
+Нетто договора: 80 → 95
+Валюта: USD
+Причина: <ПРИЧИНА>`,
+			wantErr: true,
+		},
+		{
+			name: "filled payment only — accept",
+			text: `Заявка на изменение договора
+
+Договор: https://baza.krugo.tours/contracts/q9wynhz1pi4tpvh
+
+Платёж клиента:
+  Сумма: 500
+  Валюта: USD
+  Способ: наличные
+  Дата: 2026-07-21
+  Комментарий: тест`,
 			wantErr: false,
 		},
 	}

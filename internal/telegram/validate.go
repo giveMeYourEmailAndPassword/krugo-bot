@@ -12,6 +12,10 @@ var templatePlaceholders = []string{
 	"Название: НовыйПоставщик",
 	"Цена: значение",
 }
+
+// placeholderRe matches any <...> marker used in contractTemplate().
+// Catches unfilled template fields without maintaining a manual list.
+var placeholderRe = regexp.MustCompile(`<[^>\n]+>`)
 // validateTemplate checks that the message is not an unfilled template
 func validateTemplate(text string) string {
 	lower := strings.ToLower(text)
@@ -20,6 +24,11 @@ func validateTemplate(text string) string {
 		if strings.Contains(lower, strings.ToLower(p)) {
 			return "заполните или удалите незаполненные строки шаблона"
 		}
+	}
+
+	// Catch any <...> placeholder marker from contractTemplate().
+	if placeholderRe.MatchString(text) {
+		return "заполните или удалите незаполненные поля (<...>)"
 	}
 
 	if !contractIDRe.MatchString(text) {
